@@ -1,0 +1,36 @@
+---------------------------------------------------------------------------------
+-- 
+-- Arcade: Galaga port to MiSTer by Sorgelig
+-- 23 October 2017
+-- 
+---------------------------------------------------------------------------------
+-- Galaga Midway by Dar (darfpga@aol.fr) (29 December 2016)
+-- http://darfpga.blogspot.fr
+---------------------------------------------------------------------------------
+-- gen_ram.vhd
+-------------------------------- 
+-- Copyright 2005-2008 by Peter Wendrich (pwsoft@syntiac.com)
+-- http://www.syntiac.com/fpga64.html
+---------------------------------------------------------------------------------
+-- T80/T80se - Version : 0247
+-----------------------------
+-- Z80 compatible microprocessor core
+-- Copyright (c) 2001-2002 Daniel Wallner (jesus@opencores.org)
+---------------------------------------------------------------------------------
+-- 
+-- Support screen and controls rotation on HDMI output.
+-- Only controls are rotated on VGA output.
+-- 
+-- 
+-- Keyboard inputs :
+--
+--   F3          : Add coin
+--   F2          : Start 2 players
+--   F1          : Start 1 player
+--   UP,DOWN,LEFT,RIGHT arrows : Movements
+--   SPACE       : Fire  
+--
+-- Joystick support.
+-- 
+-- 
+---------------------------------------------------------------------------------
