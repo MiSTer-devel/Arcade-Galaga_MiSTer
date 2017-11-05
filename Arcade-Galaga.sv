@@ -129,7 +129,7 @@ localparam CONF_STR = {
 	"-;",
 	"T6,Reset;",
 	"J,Fire,Bomb,Start 1P,Coin;",
-	"V,v1.50.",`BUILD_DATE
+	"V,v1.51.",`BUILD_DATE
 };
 
 ////////////////////   CLOCKS   ///////////////////

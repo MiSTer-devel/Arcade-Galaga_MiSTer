@@ -17,11 +17,18 @@
 -- Do not redistribute roms whatever the form
 -- Use at your own risk
 ---------------------------------------------------------------------------------
-
+-- Galaga releases
+--
+-- Release 0.1 - 04/11/2017 - Dar
+--		fixes 2 ships bullet bug (swap 2xH/2xV command bits)
+--
+-- Release 0.0 - December 2016 - Dar
+--		initial release
+---------------------------------------------------------------------------------
 --  Features :
 --   TV 15KHz mode only (atm)
 --   Coctail mode ok
---   Sound ok, Ship explode missing (custom chip 0x54XX todo)
+--   Sound ok
 --   Starfield from MAME information  
 
 --  Use with MAME roms from galagamw.zip
@@ -352,7 +359,7 @@ begin
 		spdata       <= wram3_do(3 downto 0);
 		spvcnt       <= sprite_line(4 downto 0);
 		if  sprite_line(7 downto 4) = "1111" or 											-- size V x 1
-		   (sprite_line(7 downto 5) = "111" and wram3_do(2)='1' )then -- size V x 2
+		   (sprite_line(7 downto 5) = "111" and wram3_do(3)='1' )then -- size V x 2 -- fixed Dar : 04/11/2017
 			sprite_state <= "001";
 		else
 			if sprite_num = "111111" then
@@ -379,8 +386,8 @@ begin
 	if sprite_state = "011" then
 		sphcnt <= sphcnt + "00001";
 		spram_wr_addr <= spram_wr_addr + "000000001";
-		if 	(sphcnt = "01111" and spdata(3) = '0' ) or   -- size H x 1
-				(sphcnt = "11111" and spdata(3) = '1' ) then -- size H x 2
+		if 	(sphcnt = "01111" and spdata(2) = '0' ) or   -- size H x 1  -- fixed Dar : 04/11/2017
+				(sphcnt = "11111" and spdata(2) = '1' ) then -- size H x 2  -- fixed Dar : 04/11/2017 
 			if sprite_num = "111111" then
 				sprite_state <= "111";
 			else
