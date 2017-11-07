@@ -19,6 +19,9 @@
 ---------------------------------------------------------------------------------
 -- Galaga releases
 --
+-- Release 0.2 - 06/11/2017 - Dar
+--    fixes twice bullets on single shot => add edge detection en fire
+--
 -- Release 0.1 - 04/11/2017 - Dar
 --		fixes 2 ships bullet bug (swap 2xH/2xV command bits)
 --
@@ -193,10 +196,10 @@ architecture struct of galaga is
  signal cs06XX_do      : std_logic_vector( 7 downto 0);
  signal cs06XX_di      : std_logic_vector( 7 downto 0);
 
- signal cs51XX_data_cnt           : std_logic_vector( 1 downto 0);
- signal cs51XX_coin_mode_cnt      : std_logic_vector( 2 downto 0);
- signal cs51XX_switch_mode        : std_logic;
- signal cs51XX_credit_mode        : std_logic;
+ signal cs51XX_data_cnt           : std_logic_vector( 1 downto 0) := "00";
+ signal cs51XX_coin_mode_cnt      : std_logic_vector( 2 downto 0) := "000";
+ signal cs51XX_switch_mode        : std_logic := '0';
+ signal cs51XX_credit_mode        : std_logic := '1';
  signal cs51XX_do                 : std_logic_vector( 7 downto 0);
  signal cs51XX_switch_mode_do     : std_logic_vector( 7 downto 0);
  signal cs51XX_non_switch_mode_do : std_logic_vector( 7 downto 0);
@@ -288,6 +291,11 @@ architecture struct of galaga is
  signal coin_r   : std_logic;
  signal start1_r : std_logic;
  signal start2_r : std_logic;
+ 
+ signal fire1_r   : std_logic;
+ signal fire2_r   : std_logic;
+ signal fire1_mem : std_logic;
+ signal fire2_mem : std_logic;
 
 begin
 
@@ -670,6 +678,8 @@ begin
 			cpu2_irq_n  <= '1';
 			cs51XX_coin_mode_cnt <= "000";
 			cs51XX_data_cnt <= "00";
+			cs51XX_switch_mode <= '0';
+			cs51XX_credit_mode <= '1';
 			cs05XX_ctrl <= "000000";
 			flip_h <= '0';
  else 
@@ -762,13 +772,24 @@ begin
 				change_next <= '1';
 			end if;
 		end if ;
-		-- cycle data_cnt at each read
+		-- cycle data_cnt at each read and clear firex_mem in switch mode
 		if change_next = '1' then
 			if cs06XX_control(3 downto 0) = "0001" then
 				if cs51XX_data_cnt = "10" then cs51XX_data_cnt <= "00"; 
 				else cs51XX_data_cnt <= cs51XX_data_cnt + "01"; end if;
+				
+				if cs51XX_data_cnt = "10" then 
+					fire1_mem <= '0';
+					fire2_mem <= '0';
+				end if;
+				
 			end if;				
 		end if;
+		-- manage fire button rising edge detection
+		fire1_r <= fire1;
+		fire2_r <= fire2;
+		if fire1_r ='0' and fire1 ='1' then fire1_mem <= '1'; end if;
+		if fire2_r ='0' and fire2 ='1' then fire2_mem <= '1'; end if;
 		
 		-- manage credit count (bcd)
 		--   increase at each coin up to 99
@@ -824,14 +845,14 @@ end process;
 
 with cs51XX_data_cnt select
 cs51XX_switch_mode_do <= 	not (left2 & '0' & right2 & '0' & left1 & '0' & right1 & '0' )       when "00",
-													not (b_test & b_svce & '0' & coin & start2 & start1 & fire2 & fire1) when "01",
-													X"00" when others;	
+									not (b_test & b_svce & '0' & coin & start2 & start1 & fire2_mem & fire1_mem) when "01",
+									X"00" when others;	
 
 with cs51XX_data_cnt select
 cs51XX_non_switch_mode_do <= 	credit_bcd_1 & credit_bcd_0 when "00", -- credits (cpu spy this)
-															not ("110" & fire1 & left1 & '0' & right1 & '0' ) when "01",
-															not ("110" & fire2 & left2 & '0' & right2 & '0' ) when "10",
-															X"00" when "11"; -- N.U.	
+										not ("110" & fire1_mem & left1 & '0' & right1 & '0' ) when "01",
+										not ("110" & fire2_mem & left2 & '0' & right2 & '0' ) when "10",
+										X"00" when "11"; -- N.U.	
 
 cs51XX_do <= cs51XX_switch_mode_do when cs51XX_switch_mode = '1' else cs51XX_non_switch_mode_do;
 
