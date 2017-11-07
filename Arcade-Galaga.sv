@@ -128,7 +128,7 @@ localparam CONF_STR = {
 	"O2,Orientation,Vert,Horz;",
 	"-;",
 	"T6,Reset;",
-	"J,Fire,Bomb,Start 1P,Coin;",
+	"J,Fire,Start 1P,Coin;",
 	"V,v1.51.",`BUILD_DATE
 };
 
@@ -204,6 +204,11 @@ reg btn_two_players = 0;
 
 wire m_left   = status[2] ? btn_down  | joy[2] : btn_left  | joy[1];
 wire m_right  = status[2] ? btn_up    | joy[3] : btn_right | joy[0];
+wire m_fire   = btn_fire | joy[4];
+
+wire m_start1 = btn_one_player | joy[5];
+wire m_start2 = btn_two_players;
+wire m_coin   = btn_coin | joy[6] | m_start1 | m_start2;
 
 wire hblank, vblank;
 wire ce_vid = 1;
@@ -261,7 +266,6 @@ galaga galaga
 	.video_r(r),
 	.video_g(g),
 	.video_b(b),
-	//.video_ce(ce_vid),
 	.video_hs(hs),
 	.video_vs(vs),
 	.hblank(hblank),
@@ -272,17 +276,17 @@ galaga galaga
 	.b_test(1),
 	.b_svce(1), 
 
-	.coin(btn_coin | joy[7]),
+	.coin(m_coin),
 
-	.start1(btn_one_player | joy[6]),
+	.start1(m_start1),
 	.left1(m_left),
 	.right1(m_right),
-	.fire1(btn_fire | joy[4]),
+	.fire1(m_fire),
 
-	.start2(btn_two_players),
-	.left2(m_left),
-	.right2(m_right),
-	.fire2(btn_fire | joy[4])
+	.start2(m_start2),
+	.left2(0),
+	.right2(0),
+	.fire2(0)
 );
 
 endmodule

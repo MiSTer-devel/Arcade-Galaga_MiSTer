@@ -25,8 +25,8 @@
 -- Keyboard inputs :
 --
 --   F3          : Add coin
---   F2          : Start 2 players
---   F1          : Start 1 player
+--   F2          : Coin + Start 2 players
+--   F1          : Coin + Start 1 player
 --   UP,DOWN,LEFT,RIGHT arrows : Movements
 --   SPACE       : Fire  
 --
