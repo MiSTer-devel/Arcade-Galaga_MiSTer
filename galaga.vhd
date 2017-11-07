@@ -810,7 +810,6 @@ begin
 	  --   decrease only when in credit mode
 		if cs51XX_credit_mode = '1' then
 			if (start1 = '1' and start1_r = '0') then
-				cs51XX_credit_mode <= '0';
 				if credit_bcd_0 = "0000" then 
 					if credit_bcd_1 /= "0000" then
 						credit_bcd_1 <= credit_bcd_1 - "0001";
@@ -824,7 +823,6 @@ begin
 			if (start2 = '1' and start2_r = '0') then
 				if credit_bcd_0 = "0000" or credit_bcd_0 = "0001" then
  					if credit_bcd_1 /= "0000" then
-						cs51XX_credit_mode <= '0';
 						credit_bcd_1 <= credit_bcd_1 - "0001";
 						if credit_bcd_0 = "0000" then 
 							credit_bcd_0 <= "1000";
@@ -833,7 +831,6 @@ begin
 						end if;
 					end if;
 				else
-					cs51XX_credit_mode <= '0';
 					credit_bcd_0 <= credit_bcd_0 - "0010";					
 				end if;
 			end if;
