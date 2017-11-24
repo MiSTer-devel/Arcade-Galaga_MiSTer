@@ -74,12 +74,15 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
 	output reg        ioctl_download = 0, // signal indicating an active download
 	output reg  [7:0] ioctl_index,        // menu index used to upload the file
 	output reg        ioctl_wr,
-	output reg [23:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
-	output reg [15:0] ioctl_dout,
+	output reg [24:0] ioctl_addr,         // in WIDE mode address will be incremented by 2
+	output reg [DW:0] ioctl_dout,
 	input             ioctl_wait,
 
 	// RTC MSM6242B layout
-	output reg [63:0] RTC,
+	output reg [64:0] RTC,
+
+	// Seconds since 1970-01-01 00:00:00
+	output reg [32:0] TIMESTAMP,
 
 	// ps2 keyboard emulation
 	output            ps2_kbd_clk_out,
@@ -96,7 +99,7 @@ module hps_io #(parameter STRLEN=0, PS2DIV=2000, WIDE=0, VDNUM=1, PS2WE=0)
 	input             ps2_mouse_data_in,
 
 	// ps2 alternative interface.
-	output reg [64:0] ps2_key   = 0, // up to 8 bytes per key (pause)
+	output reg [65:0] ps2_key   = 0, // up to 8 bytes per key (pause)
 	output reg [24:0] ps2_mouse = 0
 );
 
@@ -226,21 +229,26 @@ always@(posedge clk_sys) begin
 	reg  [9:0] byte_cnt;   // counts bytes
 	reg  [2:0] b_wr;
 	reg  [2:0] stick_idx;
+	reg        ps2skip = 0;
 
 	sd_buff_wr <= b_wr[0];
 	if(b_wr[2] && (~&sd_buff_addr)) sd_buff_addr <= sd_buff_addr + 1'b1;
 	b_wr <= (b_wr<<1);
 
 	{kbd_rd,kbd_we,mouse_rd,mouse_we} <= 0;
+	ps2_key[65] <= kbd_txempty;
 	
 	if(~io_enable) begin
-		if(cmd == 4 && !PS2WE) ps2_mouse[24] <= ~ps2_mouse[24];
-		if(cmd == 5 && !PS2WE) ps2_key[64]   <= ~ps2_key[64];
+		if(cmd == 4 && !ps2skip) ps2_mouse[24] <= ~ps2_mouse[24];
+		if(cmd == 5 && !ps2skip) ps2_key[64]   <= ~ps2_key[64];
+		if(cmd == 'h22) RTC[64] <= ~RTC[64];
+		if(cmd == 'h24) TIMESTAMP[32] <= ~TIMESTAMP[32];
 		cmd <= 0;
 		byte_cnt <= 0;
 		sd_ack <= 0;
 		sd_ack_conf <= 0;
 		io_dout <= 0;
+		ps2skip <= 0;
 	end else begin
 		if(io_strobe) begin
 
@@ -271,7 +279,8 @@ always@(posedge clk_sys) begin
 					'h04: begin
 							mouse_data <= io_din[7:0];
 							mouse_we   <= 1;
-							if(!PS2WE) begin
+							if(&io_din[15:8]) ps2skip <= 1;
+							if(~&io_din[15:8] & ~ps2skip) begin
 								case(byte_cnt)
 									1: ps2_mouse[7:0]   <= io_din[7:0];
 									2: ps2_mouse[15:8]  <= io_din[7:0];
@@ -282,7 +291,8 @@ always@(posedge clk_sys) begin
 
 					// store incoming ps2 keyboard bytes 
 					'h05: begin
-							if(!PS2WE) ps2_key[63:0] <= {ps2_key[55:0], io_din[7:0]};
+							if(&io_din[15:8]) ps2skip <= 1;
+							if(~&io_din[15:8] & ~ps2skip) ps2_key[63:0] <= {ps2_key[55:0], io_din[7:0]};
 							kbd_data <= io_din[7:0];
 							kbd_we <= 1;
 						end
@@ -377,6 +387,9 @@ always@(posedge clk_sys) begin
 								  11: io_dout <= vid_pix[31:16];
 								endcase
 						end
+
+					//RTC
+					'h24: TIMESTAMP[(byte_cnt-6'd1)<<4 +:16] <= io_din;
 				endcase
 			end
 		end
@@ -399,6 +412,7 @@ reg  [7:0] kbd_data;
 reg        kbd_we;
 wire [8:0] kbd_data_host;
 reg        kbd_rd;
+wire       kbd_txempty;
 
 ps2_device keyboard
 (
@@ -410,6 +424,7 @@ ps2_device keyboard
 	.ps2_clk(clk_ps2),
 	.ps2_clk_out(ps2_kbd_clk_out),
 	.ps2_dat_out(ps2_kbd_data_out),
+	.tx_empty(kbd_txempty),
 	
 	.ps2_clk_in(ps2_kbd_clk_in  || !PS2WE),
 	.ps2_dat_in(ps2_kbd_data_in || !PS2WE),
@@ -453,7 +468,6 @@ always@(posedge clk_sys) begin
 	reg        has_cmd;
 	reg [24:0] addr;
 	reg        wr;
-	reg  [7:0] tmp;
 
 	ioctl_wr <= wr;
 	wr <= 0;
@@ -479,20 +493,17 @@ always@(posedge clk_sys) begin
 								addr <= 0;
 								ioctl_download <= 1; 
 							end else begin
-								ioctl_addr <= addr[24:1];
+								ioctl_addr <= addr;
 								ioctl_download <= 0;
 							end
 						end
 
 					UIO_FILE_TX_DAT:
 						begin
-							if(addr[0]) begin
-								ioctl_addr <= addr[24:1];
-								ioctl_dout <= {tmp, io_din[7:0]};
-								wr <= 1;
-							end
-							tmp <= io_din[7:0];
-							addr <= addr + 1'd1;
+							ioctl_addr <= addr;
+							ioctl_dout <= io_din[DW:0];
+							wr   <= 1;
+							addr <= addr + (WIDE ? 2'd2 : 2'd1);
 						end
 				endcase
 			end
@@ -515,6 +526,7 @@ module ps2_device #(parameter PS2_FIFO_BITS=5)
 	input        ps2_clk,
 	output reg   ps2_clk_out,
 	output reg   ps2_dat_out,
+	output reg   tx_empty,
 
 	input        ps2_clk_in,
 	input        ps2_dat_in,
@@ -546,6 +558,8 @@ always@(posedge clk_sys) begin
 	reg [3:0] rx_cnt;
 
 	reg c1,c2,d1;
+
+	tx_empty <= ((wptr == rptr) && (tx_state == 0));
 
 	if(we) begin
 		fifo[wptr] <= wdata;

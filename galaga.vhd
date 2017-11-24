@@ -125,7 +125,11 @@ port(
 	start2         : in std_logic;
 	left2          : in std_logic;
 	right2         : in std_logic;
-	fire2          : in std_logic
+	fire2          : in std_logic;
+
+	dn_addr        : in  std_logic_vector(15 downto 0);
+	dn_data        : in  std_logic_vector(7 downto 0);
+	dn_wr          : in  std_logic
 );
 end galaga;
 
@@ -296,6 +300,12 @@ architecture struct of galaga is
  signal fire2_r   : std_logic;
  signal fire1_mem : std_logic;
  signal fire2_mem : std_logic;
+
+ signal rom1_cs   : std_logic;
+ signal rom2_cs   : std_logic;
+ signal rom3_cs   : std_logic;
+ signal roms_cs   : std_logic;
+ signal romb_cs   : std_logic;
 
 begin
 
@@ -1000,35 +1010,66 @@ port map(
   DO      => cpu3_do
 );
 
+rom1_cs <= '1' when dn_addr(15 downto 14) = "00"   else '0';
+rom2_cs <= '1' when dn_addr(15 downto 12) = "0100" else '0';
+rom3_cs <= '1' when dn_addr(15 downto 12) = "0101" else '0';
+roms_cs <= '1' when dn_addr(15 downto 13) = "011"  else '0';
+romb_cs <= '1' when dn_addr(15 downto 12) = "1000" else '0';
+
 -- cpu1 program ROM
-rom_cpu1 : entity work.galaga_cpu1
-port map(
- clk  => clock_18n,
- addr => mux_addr(13 downto 0),
- data => cpu1_rom_do
+rom_cpu1 : work.dpram generic map (14,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and rom1_cs,
+	address_a => dn_addr(13 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => mux_addr(13 downto 0),
+	q_b       => cpu1_rom_do
 );
 
 -- cpu2 program ROM
-rom_cpu2 : entity work.galaga_cpu2
-port map(
- clk  => clock_18n,
- addr => mux_addr(11 downto 0),
- data => cpu2_rom_do
+rom_cpu2 : work.dpram generic map (12,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and rom2_cs,
+	address_a => dn_addr(11 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => mux_addr(11 downto 0),
+	q_b       => cpu2_rom_do
 );
 
 -- cpu3 program ROM
-rom_cpu3 : entity work.galaga_cpu3
-port map(
- clk  => clock_18n,
- addr => mux_addr(11 downto 0),
- data => cpu3_rom_do
+rom_cpu3 : work.dpram generic map (12,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and rom3_cs,
+	address_a => dn_addr(11 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => mux_addr(11 downto 0),
+	q_b       => cpu3_rom_do
 );
+
 -- background graphics ROM
-bg_graphics : entity work.bg_graphx
-port map(
- clk  => clock_18n,
- addr => bggraphx_addr(11 downto 0),
- data => bggraphx_do
+bg_graphics : work.dpram generic map (12,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and romb_cs,
+	address_a => dn_addr(11 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => bggraphx_addr(11 downto 0),
+	q_b       => bggraphx_do
 );
 
 -- background palette ROM
@@ -1103,11 +1144,17 @@ port map(
 );
 
 -- sprite graphics ROM
-sp_graphics : entity work.sp_graphx
-port map(
- clk  => clock_18n,
- addr => spgraphx_addr,
- data => spgraphx_do
+sp_graphics : work.dpram generic map (13,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and roms_cs,
+	address_a => dn_addr(12 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => spgraphx_addr,
+	q_b       => spgraphx_do
 );
 
 -- sprite palette ROM
