@@ -1,7 +1,7 @@
 @echo off
 
 set    zip=galagamw.zip
-set ifiles=3200a.bin+3300b.bin+3400c.bin+3500d.bin+3600e.bin+3700g.bin+2800l.bin+ 2700k.bin+2600j.bin
+set ifiles=3200a.bin+3300b.bin+3400c.bin+3500d.bin+3600e.bin+3700g.bin+2800l.bin+ 2700k.bin+2600j.bin+54xx.bin
 set  ofile=a.galaga.rom
 
 rem =====================================

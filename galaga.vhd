@@ -19,6 +19,9 @@
 ---------------------------------------------------------------------------------
 -- Galaga releases
 --
+-- Release 0.3 - 06/05/2018 - Dar
+--    add mb88 explosion sound ship 
+--
 -- Release 0.2 - 06/11/2017 - Dar
 --    fixes twice bullets on single shot => add edge detection en fire
 --
@@ -79,7 +82,7 @@
 --      simplified emulation in vhdl : 1coin/1credit, 1 or 2 players start
 --
 --    Namco 54XX for sound effects 
---      no emulation in vhdl atm
+--      m88 ok
 --
 --    Namco sound waveform and frequency synthetizer
 --      full original emulation in vhdl
@@ -211,8 +214,22 @@ architecture struct of galaga is
  signal credit_bcd_0              : std_logic_vector( 3 downto 0);
  signal credit_bcd_1              : std_logic_vector( 3 downto 0);
  
- signal cs54XX_cmd        : std_logic_vector( 3 downto 0);
  signal cs54XX_do         : std_logic_vector( 7 downto 0);
+ 
+ signal cs54xx_ena      : std_logic;
+ signal cs54xx_ena_div  : std_logic_vector(2 downto 0) := "000";
+ signal cs5Xxx_rw       : std_logic;
+ 
+ signal cs54xx_rom_addr : std_logic_vector(10 downto 0); 
+ signal cs54xx_rom_do   : std_logic_vector( 7 downto 0); 
+ 
+ signal cs54xx_irq_n      : std_logic := '1'; 
+ signal cs54xx_irq_cnt    : std_logic_vector( 3 downto 0); 
+ signal cs54xx_k_port_in  : std_logic_vector( 3 downto 0); 
+ signal cs54xx_r0_port_in : std_logic_vector( 3 downto 0); 
+ signal cs54xx_audio_1    : std_logic_vector( 3 downto 0); 
+ signal cs54xx_audio_2    : std_logic_vector( 3 downto 0); 
+ signal cs54xx_audio_3    : std_logic_vector( 3 downto 0); 
 
  signal cs05XX_ctrl       : std_logic_vector( 5 downto 0);
  
@@ -291,6 +308,7 @@ architecture struct of galaga is
 
  signal snd_ram_0_we : std_logic;
  signal snd_ram_1_we : std_logic;
+ signal snd_audio    : std_logic_vector(9 downto 0);
 
  signal coin_r   : std_logic;
  signal start1_r : std_logic;
@@ -306,6 +324,7 @@ architecture struct of galaga is
  signal rom3_cs   : std_logic;
  signal roms_cs   : std_logic;
  signal romb_cs   : std_logic;
+ signal romm_cs   : std_logic;
 
 begin
 
@@ -316,6 +335,8 @@ dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 
 dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
 dip_switch_do <= 	dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) & 
 									dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
+
+audio <= ("00" & cs54xx_audio_1 &  "0000" ) + ("00" & cs54xx_audio_2 &  "0000" )+ ('0'&snd_audio(9 downto 1));
 
 -- make access slots from 18MHz
 -- 6MHz for pixel clock and sound machine
@@ -335,9 +356,11 @@ begin
   cpu1_ena   <= '0';
   cpu2_ena   <= '0';
   cpu3_ena   <= '0';
+  cs54xx_ena <= '0';
 	
   if slot = "101" then
    slot <= (others => '0');
+	cs54xx_ena_div <= cs54xx_ena_div +'1';
 	else
 		slot <= std_logic_vector(unsigned(slot) + 1);
   end if;   
@@ -347,6 +370,8 @@ begin
 	if slot = "101" then cpu1_ena <= '1';	end if;
 	if slot = "000" then cpu2_ena <= '1';	end if;	
 	if slot = "001" then cpu3_ena <= '1';	end if;
+	
+	if slot = "000" and cs54xx_ena_div = "000" then cs54xx_ena <= '1'; end if;
 		
  end if;
 end process;
@@ -637,7 +662,7 @@ cpu_addr  => mux_addr(3 downto 0),
 cpu_do    => mux_cpu_do(3 downto 0), 
 ram_0_we  => snd_ram_0_we,
 ram_1_we  => snd_ram_1_we,
-audio     => audio
+audio     => snd_audio
 );
 
 --- CPUS -------------
@@ -692,6 +717,9 @@ begin
 			cs51XX_credit_mode <= '1';
 			cs05XX_ctrl <= "000000";
 			flip_h <= '0';
+			cs54xx_irq_n <= '1';
+			cs54xx_irq_cnt <= X"0";
+			
  else 
   if rising_edge(clock_18n) then 
 		if latch_we ='1' and mux_addr(5 downto 4) = "10" then 
@@ -715,10 +743,26 @@ begin
 		elsif vcnt = std_logic_vector(to_unsigned(240,9)) then cpu2_irq_n <= '0';
 		end if;
 		
+		if cs54xx_irq_cnt = X"0" then 
+		  cs54xx_irq_n <= '1';
+		else 
+			if cs54xx_ena = '1' then
+				cs54xx_irq_cnt <= cs54xx_irq_cnt - '1';
+			end if;
+		end if;
+		
 		-- write to cs06XX
 		if io_we = '1' then 
 			-- write to data register (0x7000)
 		  if mux_addr(8) = '0' then
+				-- write data to device#4 (cs54XX)
+				if cs06XX_control(3 downto 0) = "1000" then
+						-- write data for k and r#0 port and launch irq to advice cs50xx
+						cs54xx_k_port_in <= mux_cpu_do(7 downto 4);
+						cs54xx_r0_port_in <= mux_cpu_do(3 downto 0);
+						cs54xx_irq_n <= '0';
+						cs54xx_irq_cnt <= X"7";						
+				end if;		  
 				-- write data to device#1 (cs51XX)
 				if cs06XX_control(3 downto 0) = "0001" then
 					-- when not in coin mode
@@ -863,7 +907,7 @@ cs51XX_non_switch_mode_do <= 	credit_bcd_1 & credit_bcd_0 when "00", -- credits 
 
 cs51XX_do <= cs51XX_switch_mode_do when cs51XX_switch_mode = '1' else cs51XX_non_switch_mode_do;
 
-cs54XX_do <= X"FF"; -- todo (maybe)
+cs54XX_do <= X"FF"; -- no data from CS54XX
 
 with cs06XX_control(3 downto 0) select
 cs06XX_di <= cs51XX_do when "0001",
@@ -1010,11 +1054,59 @@ port map(
   DO      => cpu3_do
 );
 
-rom1_cs <= '1' when dn_addr(15 downto 14) = "00"   else '0';
-rom2_cs <= '1' when dn_addr(15 downto 12) = "0100" else '0';
-rom3_cs <= '1' when dn_addr(15 downto 12) = "0101" else '0';
-roms_cs <= '1' when dn_addr(15 downto 13) = "011"  else '0';
-romb_cs <= '1' when dn_addr(15 downto 12) = "1000" else '0';
+-- mb88 - cs54xx (28 pins IC, 1024 bytes rom)
+mb88_54xx : entity work.mb88
+port map(
+ reset_n    => reset_cpu_n, --reset_n,
+ clock      => clock_18,
+ ena        => cs54xx_ena,
+
+ r0_port_in  => cs54xx_r0_port_in, -- pin 12,13,15,16
+ r1_port_in  => X"0",
+ r2_port_in  => X"0",
+ r3_port_in  => X"0",
+ r0_port_out => open,
+ r1_port_out => cs54xx_audio_3,   -- pin 17,18,19,20 (resistor divider )
+ r2_port_out => open,
+ r3_port_out => open,
+ k_port_in   => cs54xx_k_port_in, -- pin 24,25,26,27
+ ol_port_out => cs54xx_audio_1,   -- pin  4, 5, 6, 7 (resistor divider 150K/22K)
+ oh_port_out => cs54xx_audio_2,   -- pin  8, 9,10,11 (resistor divider  47K/10K)
+ p_port_out  => open,
+
+ stby_n    => '0',
+ tc_n      => '0',
+ irq_n     => cs54xx_irq_n,
+ sc_in_n   => '0',
+ si_n      => '0',
+ sc_out_n  => open,
+ so_n      => open,
+ to_n      => open,
+ 
+ rom_addr  => cs54xx_rom_addr,
+ rom_data  => cs54xx_rom_do
+);
+
+-- cs54xx program ROM
+cs54xx_prog : work.dpram generic map (10,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and romm_cs,
+	address_a => dn_addr(9 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => cs54xx_rom_addr(9 downto 0),
+	q_b       => cs54xx_rom_do
+);
+
+rom1_cs <= '1' when dn_addr(15 downto 14) = "00"     else '0';
+rom2_cs <= '1' when dn_addr(15 downto 12) = "0100"   else '0';
+rom3_cs <= '1' when dn_addr(15 downto 12) = "0101"   else '0';
+roms_cs <= '1' when dn_addr(15 downto 13) = "011"    else '0';
+romb_cs <= '1' when dn_addr(15 downto 12) = "1000"   else '0';
+romm_cs <= '1' when dn_addr(15 downto 10) = "100100" else '0';
 
 -- cpu1 program ROM
 rom_cpu1 : work.dpram generic map (14,8)

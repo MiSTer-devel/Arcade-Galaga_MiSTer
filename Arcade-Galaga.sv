@@ -94,7 +94,7 @@ localparam CONF_STR = {
 	"-;",
 	"T6,Reset;",
 	"J,Fire,Start 1P,Start 2P;",
-	"V,v2.00.",`BUILD_DATE
+	"V,v2.10.",`BUILD_DATE
 };
 
 ////////////////////   CLOCKS   ///////////////////
