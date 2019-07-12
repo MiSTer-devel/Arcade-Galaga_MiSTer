@@ -87,10 +87,16 @@ assign HDMI_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
 `include "build_id.v" 
 localparam CONF_STR = {
 	"A.GALAGA;;",
+	"F,rom;", // allow loading of alternate ROMs
 	"-;",
 	"O1,Aspect Ratio,Original,Wide;",
 	"O2,Orientation,Vert,Horz;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
+	"-;",
+	"O89,Lives,3,5,2,4;",
+	"OAB,Difficulty,Easy,Hard,Hardest,Medium;",
+	"OC,Cabinet,Upright,Cocktail;",
+	//"ODF,ShipBonus,30k80kOnly/30kOnly,20k60kOnly/30k150kOnly,2k6k6k/3k10k10k,2k7k7k/3k12k12k,2k8k8k/3k15k10k,3k10k10k/3k12k12k,2k6k6k/3k10k10k,2k7k7k/3k12k12k,2k6k6k/3k10k10k,2k7k7k/3k12k12k;",
 	"-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P;",
@@ -167,6 +173,17 @@ always @(posedge clk_sys) begin
 
 			'h005: btn_one_player  <= pressed; // F1
 			'h006: btn_two_players <= pressed; // F2
+
+			// JPAC/IPAC/MAME Style Codes
+			'h016: btn_start_1     <= pressed; // 1
+			'h01E: btn_start_2     <= pressed; // 2
+			'h02E: btn_coin_1      <= pressed; // 5
+			'h036: btn_coin_2      <= pressed; // 6
+			'h02D: btn_up_2        <= pressed; // R
+			'h02B: btn_down_2      <= pressed; // F
+			'h023: btn_left_2      <= pressed; // D
+			'h034: btn_right_2     <= pressed; // G
+			'h01C: btn_fire_2      <= pressed; // A
 		endcase
 	end
 end
@@ -179,12 +196,28 @@ reg btn_fire  = 0;
 reg btn_one_player  = 0;
 reg btn_two_players = 0;
 
+reg btn_start_1=0;
+reg btn_start_2=0;
+reg btn_coin_1=0;
+reg btn_coin_2=0;
+reg btn_up_2=0;
+reg btn_down_2=0;
+reg btn_left_2=0;
+reg btn_right_2=0;
+reg btn_fire_2=0;
+
+wire m_up_2     = status[2] ? btn_left_2  | joy[1] : btn_up_2    | joy[3];
+wire m_down_2   = status[2] ? btn_right_2 | joy[0] : btn_down_2  | joy[2];
+wire m_left_2   = status[2] ? btn_down_2  | joy[2] : btn_left_2  | joy[1];
+wire m_right_2  = status[2] ? btn_up_2    | joy[3] : btn_right_2 | joy[0];
+wire m_fire_2  = btn_fire_2 | joy[4];
+
 wire m_left   = status[2] ? btn_down  | joy[2] : btn_left  | joy[1];
 wire m_right  = status[2] ? btn_up    | joy[3] : btn_right | joy[0];
 wire m_fire   = btn_fire | joy[4];
 
-wire m_start1 = btn_one_player  | joy[5];
-wire m_start2 = btn_two_players | joy[6];
+wire m_start1 = btn_one_player  | joy[5] | btn_start_1;
+wire m_start2 = btn_two_players | joy[6] | btn_start_2;
 wire m_coin   = m_start1 | m_start2;
 
 reg ce_pix;
@@ -218,6 +251,12 @@ assign AUDIO_L = {audio, 6'b000000};
 assign AUDIO_R = AUDIO_L;
 assign AUDIO_S = 0;
 
+wire [7:0]dip_switch_a = { status[12],1'b1,1'b1,1'b1,1'b0,1'b1,~status[11:10]};
+wire [7:0]dip_switch_b = { ~status[9],status[8],6'b010111};
+
+//dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
+//dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
+
 galaga galaga
 (
 	.clock_18(clk_sys),
@@ -240,7 +279,7 @@ galaga galaga
 	.b_test(1),
 	.b_svce(1), 
 
-	.coin(m_coin),
+	.coin(m_coin|btn_coin_1|btn_coin_2),
 
 	.start1(m_start1),
 	.left1(m_left),
@@ -248,9 +287,12 @@ galaga galaga
 	.fire1(m_fire),
 
 	.start2(m_start2),
-	.left2(0),
-	.right2(0),
-	.fire2(0)
+	.left2(m_left_2),
+	.right2(m_right_2),
+	.fire2(m_fire_2),        
+	
+	.dip_switch_a(dip_switch_a),
+	.dip_switch_b(dip_switch_b)
 );
 
 endmodule

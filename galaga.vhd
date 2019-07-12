@@ -129,6 +129,9 @@ port(
 	left2          : in std_logic;
 	right2         : in std_logic;
 	fire2          : in std_logic;
+	
+	dip_switch_a    : in std_logic_vector (7 downto 0);
+	dip_switch_b    : in std_logic_vector (7 downto 0);
 
 	dn_addr        : in  std_logic_vector(15 downto 0);
 	dn_data        : in  std_logic_vector(7 downto 0);
@@ -233,8 +236,8 @@ architecture struct of galaga is
 
  signal cs05XX_ctrl       : std_logic_vector( 5 downto 0);
  
- signal dip_switch_a  : std_logic_vector (7 downto 0);
- signal dip_switch_b  : std_logic_vector (7 downto 0);
+ --signal dip_switch_a  : std_logic_vector (7 downto 0);
+ --signal dip_switch_b  : std_logic_vector (7 downto 0);
  signal dip_switch_do : std_logic_vector (1 downto 0);
  
  signal bgtile_num     : std_logic_vector( 7 downto 0);
@@ -331,8 +334,8 @@ begin
 clock_18n <= not clock_18;
 reset_n   <= not reset;
 
-dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
-dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
+--dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
+--dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
 dip_switch_do <= 	dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) & 
 									dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
 
