@@ -220,19 +220,20 @@ wire m_start1 = btn_one_player  | joy[5] | btn_start_1;
 wire m_start2 = btn_two_players | joy[6] | btn_start_2;
 wire m_coin   = m_start1 | m_start2;
 
+wire ce_vid;
 reg ce_pix;
 always @(posedge clk_48m) begin
 	reg old_clk;
 	
-	old_clk <= clk_12m;
-	ce_pix <= old_clk & ~clk_12m;
+	old_clk <= ce_vid;
+	ce_pix <= old_clk & ~ce_vid;
 end
 
 wire HBlank,VBlank,hs,vs;
 wire [2:0] r,g;
 wire [1:0] b;
 
-arcade_rotate_fx #(576,224,8) arcade_video
+arcade_rotate_fx #(288,224,8) arcade_video
 (
 	.*,
 
@@ -271,6 +272,7 @@ galaga galaga
 	.video_b(b),
 	.video_hs(hs),
 	.video_vs(vs),
+	.video_ce(ce_vid),
 	.hblank(HBlank),
 	.vblank(VBlank),
 
