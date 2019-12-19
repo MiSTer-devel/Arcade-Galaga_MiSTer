@@ -29,7 +29,7 @@ module emu
 	input         RESET,
 
 	//Must be passed to hps_io module
-	inout  [44:0] HPS_BUS,
+	inout  [45:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        VGA_CLK,
@@ -44,6 +44,7 @@ module emu
 	output        VGA_HS,
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
+	output        VGA_F1,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        HDMI_CLK,
@@ -74,9 +75,21 @@ module emu
 
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
-	output        AUDIO_S    // 1 - signed audio samples, 0 - unsigned
+	output        AUDIO_S,   // 1 - signed audio samples, 0 - unsigned
+	
+	// Open-drain User port.
+	// 0 - D+/RX
+	// 1 - D-/TX
+	// 2..6 - USR2..USR6
+	// Set USER_OUT to 1 to read from USER_IN.
+	input   [6:0] USER_IN,
+	output  [6:0] USER_OUT
+	
+	
 );
 
+assign VGA_F1    = 0;
+assign USER_OUT  = '1;
 assign LED_USER  = ioctl_download;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
@@ -87,21 +100,30 @@ assign HDMI_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
 `include "build_id.v" 
 localparam CONF_STR = {
 	"A.GALAGA;;",
-	"F,rom;", // allow loading of alternate ROMs
-	"-;",
 	"O1,Aspect Ratio,Original,Wide;",
 	"O2,Orientation,Vert,Horz;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
 	"-;",
 	"O89,Lives,3,5,2,4;",
-	"OAB,Difficulty,Easy,Hard,Hardest,Medium;",
+	"OAB,Difficulty,Medium(B),Hard(C),Hardest(D),Easy(A);",
 	"OC,Cabinet,Upright,Cocktail;",
-	//"ODF,ShipBonus,30k80kOnly/30kOnly,20k60kOnly/30k150kOnly,2k6k6k/3k10k10k,2k7k7k/3k12k12k,2k8k8k/3k15k10k,3k10k10k/3k12k12k,2k6k6k/3k10k10k,2k7k7k/3k12k12k,2k6k6k/3k10k10k,2k7k7k/3k12k12k;",
+	"H0ODF,ShipBonus,30k80kOnly,20k20k80k,30k12k12k,20k60k60k,20k60kOnly,20k70k70k,30k100k100k,Nothing;",
+	"H1ODF,ShipBonus,30kOnly,30k150k150k,30k120kOnly,30k100k100k,30k150kOnly,30k120k120k,30k100kOnly,Nothing;",
+	"OJ,Rack Test,Off,On;",
+	"OK,Freeze,Off,On;",
+	"OL,Demo Sounds,Off,On;",
 	"-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P;",
 	"V,v",`BUILD_DATE
 };
+
+// num ships, cabinet work
+wire [7:0]dip_switch_a = { ~status[12],1'b1,~status[19],~status[20],~status[21],status[11:10],1'b1};
+wire [7:0]dip_switch_b = { ~status[9],status[8],~status[15],~status[14],~status[13],3'b111};
+
+//dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
+//dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
 
 ////////////////////   CLOCKS   ///////////////////
 
@@ -122,6 +144,7 @@ pll pll
 ///////////////////////////////////////////////////
 
 wire [31:0] status;
+wire [15:0] status_menumask = {status[9:8]!=2'b01,status[9:8]==2'b01};
 wire  [1:0] buttons;
 wire        forced_scandoubler;
 
@@ -135,6 +158,9 @@ wire [10:0] ps2_key;
 wire [15:0] joystick_0, joystick_1;
 wire [15:0] joy = joystick_0 | joystick_1;
 
+wire [21:0] gamma_bus;
+
+
 hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -144,7 +170,9 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 	.buttons(buttons),
 	.status(status),
+	.status_menumask(status_menumask),
 	.forced_scandoubler(forced_scandoubler),
+	.gamma_bus(gamma_bus),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
@@ -224,7 +252,7 @@ wire ce_vid;
 reg ce_pix;
 always @(posedge clk_48m) begin
 	reg old_clk;
-	
+
 	old_clk <= ce_vid;
 	ce_pix <= old_clk & ~ce_vid;
 end
@@ -252,11 +280,6 @@ assign AUDIO_L = {audio, 6'b000000};
 assign AUDIO_R = AUDIO_L;
 assign AUDIO_S = 0;
 
-wire [7:0]dip_switch_a = { status[12],1'b1,1'b1,1'b1,1'b0,1'b1,~status[11:10]};
-wire [7:0]dip_switch_b = { ~status[9],status[8],6'b010111};
-
-//dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
-//dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
 
 galaga galaga
 (
