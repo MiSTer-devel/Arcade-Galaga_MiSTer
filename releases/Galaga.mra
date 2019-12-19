@@ -1,0 +1,15 @@
+<misterromdescription>
+  <rbf>Galaga</rbf>
+  <rom index="0" zip="galagamw.zip" md5="32d57ddcdf7ab064ac43b47a7d7e92aa">
+        <part name="3200a.bin"/>
+        <part name="3300b.bin"/>
+        <part name="3400c.bin"/>
+        <part name="3500d.bin"/>
+        <part name="3600e.bin"/>
+        <part name="3700g.bin"/>
+        <part name="2800l.bin"/>
+        <part name="2700k.bin"/>
+        <part name="2600j.bin"/>
+        <part name="54xx.bin"/>
+  </rom>
+</misterromdescription>
