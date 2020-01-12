@@ -10,6 +10,6 @@
         <part name="2800l.bin"/>
         <part name="2700k.bin"/>
         <part name="2600j.bin"/>
-        <part name="54xx.bin"/>
+        <part zip="namco54.zip" name="54xx.bin"/>
   </rom>
 </misterromdescription>

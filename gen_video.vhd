@@ -96,8 +96,8 @@ if rising_edge(clk) and enable = '1' then    -- clk & ena at 6MHz
   elsif vcntReg = 003 then vsync <= '1';
   end if;
 
-  if    hcntReg = (127+16+8) then hblank <= '1'; 
-  elsif hcntReg = (255-17+8+1) then hblank <= '0';
+  if    hcntReg = (127+16+9) then hblank <= '1'; 
+  elsif hcntReg = (255-17+9+1) then hblank <= '0';
   end if;
 
   if    vcntReg = (240+1-1) then vblank <= '1';
