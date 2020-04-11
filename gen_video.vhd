@@ -50,61 +50,63 @@ hsync <= hsync0;
 process(clk)
 begin
 
-if rising_edge(clk) and enable = '1' then    -- clk & ena at 6MHz
+	if rising_edge(clk) then
+		if enable = '1' then    -- clk & ena at 6MHz
 
-  if hcntReg = 511 then 
-    hcntReg <= to_unsigned (128,9);
-  else
-    hcntReg <= hcntReg + 1;
-  end if;
+		  if hcntReg = 511 then 
+			 hcntReg <= to_unsigned (128,9);
+		  else
+			 hcntReg <= hcntReg + 1;
+		  end if;
 
-  if hcntReg = 191 then
-    if vcntReg = 263 then
-      vcntReg <= to_unsigned(0,9);
-    else
-      vcntReg <= vcntReg + 1;
-    end if;
-  end if;
+		  if hcntReg = 191 then
+			 if vcntReg = 263 then
+				vcntReg <= to_unsigned(0,9);
+			 else
+				vcntReg <= vcntReg + 1;
+			 end if;
+		  end if;
 
-  if    hcntReg = (175+ 0-8+8) then hsync0 <= '0'; -- 1
-  elsif hcntReg = (175+29-8+8) then	hsync0 <= '1';
-  end if;
+		  if    hcntReg = (175+ 0-8+8) then hsync0 <= '0'; -- 1
+		  elsif hcntReg = (175+29-8+8) then	hsync0 <= '1';
+		  end if;
 
-  if    hcntReg = (175-8+8)        then hsync1 <= '0';
-  elsif hcntReg = (175+13-8+8)     then hsync1 <= '1'; -- 11
-  elsif hcntReg = (175   +192-8+8) then hsync1 <= '0';
-  elsif hcntReg = (175+13+192-8+8) then hsync1 <= '1'; -- 11
-  end if;
+		  if    hcntReg = (175-8+8)        then hsync1 <= '0';
+		  elsif hcntReg = (175+13-8+8)     then hsync1 <= '1'; -- 11
+		  elsif hcntReg = (175   +192-8+8) then hsync1 <= '0';
+		  elsif hcntReg = (175+13+192-8+8) then hsync1 <= '1'; -- 11
+		  end if;
 
-  if    hcntReg = (175-8+8)     then hsync2 <= '0';
-  elsif hcntReg = (175-28-8+8)  then hsync2 <= '1';
-  end if;
+		  if    hcntReg = (175-8+8)     then hsync2 <= '0';
+		  elsif hcntReg = (175-28-8+8)  then hsync2 <= '1';
+		  end if;
 
-  if     vcntReg = 252-1 then csync <= hsync1;
-  elsif  vcntReg = 253-1 then csync <= hsync1;
-  elsif  vcntReg = 254-1 then csync <= hsync1; -- and hsync2;
-  elsif  vcntReg = 255-1 then csync <= hsync2; -- not(hsync1);
-  elsif  vcntReg = 256-1 then csync <= hsync2; -- not(hsync1);
-  elsif  vcntReg = 257-1 then csync <= hsync2; -- not(hsync1) or not(hsync2);
-  elsif  vcntReg = 258-1 then csync <= hsync1;
-  elsif  vcntReg = 259-1 then csync <= hsync1;
-  elsif  vcntReg = 260-1 then csync <= hsync1;
-  else                        csync <= hsync0;
-  end if;
+		  if     vcntReg = 252-1 then csync <= hsync1;
+		  elsif  vcntReg = 253-1 then csync <= hsync1;
+		  elsif  vcntReg = 254-1 then csync <= hsync1; -- and hsync2;
+		  elsif  vcntReg = 255-1 then csync <= hsync2; -- not(hsync1);
+		  elsif  vcntReg = 256-1 then csync <= hsync2; -- not(hsync1);
+		  elsif  vcntReg = 257-1 then csync <= hsync2; -- not(hsync1) or not(hsync2);
+		  elsif  vcntReg = 258-1 then csync <= hsync1;
+		  elsif  vcntReg = 259-1 then csync <= hsync1;
+		  elsif  vcntReg = 260-1 then csync <= hsync1;
+		  else                        csync <= hsync0;
+		  end if;
 
-  if    vcntReg = 260 then vsync <= '0';
-  elsif vcntReg = 003 then vsync <= '1';
-  end if;
+		  if    vcntReg = 260 then vsync <= '0';
+		  elsif vcntReg = 003 then vsync <= '1';
+		  end if;
 
-  if    hcntReg = (127+16+9) then hblank <= '1'; 
-  elsif hcntReg = (255-17+9+1) then hblank <= '0';
-  end if;
+		  if    hcntReg = (127+16+9) then hblank <= '1'; 
+		  elsif hcntReg = (255-17+9+1) then hblank <= '0';
+		  end if;
 
-  if    vcntReg = (240+1-1) then vblank <= '1';
-  elsif vcntReg = (015+1) then vblank <= '0';
-  end if;
+		  if    vcntReg = (240+1-1) then vblank <= '1';
+		  elsif vcntReg = (015+1) then vblank <= '0';
+		  end if;
 
-end if;
+		end if;
+	end if;
 
 end process;
 

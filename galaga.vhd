@@ -603,7 +603,7 @@ port  map(
 process (clock_18)
 	subtype speed is integer range -3 to 3;
 	type speed_array is array(0 to 7) of speed; 
-	variable speeds : speed_array := ( -1, -2, -3, 0, 3, 2, 1, 0 ); 
+	constant speeds : speed_array := ( -1, -2, -3, 0, 3, 2, 1, 0 ); 
 begin
  if rising_edge(clock_18) then 
 
@@ -922,11 +922,13 @@ cs06XX_do <= cs06XX_di when mux_addr(8)= '0' else cs06XX_control;
 process (clock_18, nmion_n)
 begin
  if nmion_n = '1' then
- elsif rising_edge(clock_18) and ena_vidgen = '1' then
+ elsif rising_edge(clock_18) then
+	if ena_vidgen = '1' then
 		if hcnt = "100000000" then
 			if vcnt = "001000000" or vcnt = "011000000" then cpu3_nmi_n <= '0'; end if;
 			if vcnt = "001000001" or vcnt = "011000001" then cpu3_nmi_n <= '1'; end if;
 		end if;
+	end if;
  end if;
 end process;
 
@@ -972,15 +974,15 @@ cpu3_di <= 	cpu3_rom_do when "00000",
 -- video address/sync generator
 gen_video : entity work.gen_video
 port map(
-clk     => clock_18,
-enable  => ena_vidgen,
-hcnt    => hcnt,
-vcnt    => vcnt,
-hsync   => video_hs,
-vsync   => video_vs,
-csync   => video_csync,
-hblank  => hblank,
-vblank  => vblank
+  clk     => clock_18,
+  enable  => ena_vidgen,
+  hcnt    => hcnt,
+  vcnt    => vcnt,
+  hsync   => video_hs,
+  vsync   => video_vs,
+  csync   => video_csync,
+  hblank  => hblank,
+  vblank  => vblank
 );
 
 -- microprocessor Z80 - 1
@@ -994,7 +996,7 @@ port map(
   INT_n   => cpu1_irq_n,
   NMI_n   => cpu1_nmi_n,
   BUSRQ_n => '1',
-  M1_n    => cpu1_m1_n,
+  --M1_n    => cpu1_m1_n,
   MREQ_n  => cpu1_mreq_n,
   IORQ_n  => open,
   RD_n    => open,
@@ -1019,7 +1021,7 @@ port map(
   INT_n   => cpu2_irq_n,
   NMI_n   => '1', --cpu_int_n,
   BUSRQ_n => '1',
-  M1_n    => cpu2_m1_n,
+  --M1_n    => cpu2_m1_n,
   MREQ_n  => cpu2_mreq_n,
   IORQ_n  => open,
   RD_n    => open,
@@ -1044,7 +1046,7 @@ port map(
   INT_n   => '1',
   NMI_n   => cpu3_nmi_n,
   BUSRQ_n => '1',
-  M1_n    => cpu3_m1_n,
+  --M1_n    => cpu3_m1_n,
   MREQ_n  => cpu3_mreq_n,
   IORQ_n  => open,
   RD_n    => open,
@@ -1069,7 +1071,7 @@ port map(
  r2_port_in  => X"0",
  r3_port_in  => X"0",
  r0_port_out => open,
- r1_port_out => cs54xx_audio_3,   -- pin 17,18,19,20 (resistor divider )
+ r1_port_out => open, --cs54xx_audio_3,   -- pin 17,18,19,20 (resistor divider )
  r2_port_out => open,
  r3_port_out => open,
  k_port_in   => cs54xx_k_port_in, -- pin 24,25,26,27
@@ -1082,9 +1084,6 @@ port map(
  irq_n     => cs54xx_irq_n,
  sc_in_n   => '0',
  si_n      => '0',
- sc_out_n  => open,
- so_n      => open,
- to_n      => open,
  
  rom_addr  => cs54xx_rom_addr,
  rom_data  => cs54xx_rom_do

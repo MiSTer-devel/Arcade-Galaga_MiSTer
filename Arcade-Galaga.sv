@@ -177,7 +177,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.status_menumask(status_menumask),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
-        .direct_video(direct_video),
+	.direct_video(direct_video),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
@@ -197,23 +197,23 @@ always @(posedge clk_sys) begin
 	
 	if(old_state != ps2_key[10]) begin
 		casex(code)
-			'hX75: btn_up          <= pressed; // up
-			'hX72: btn_down        <= pressed; // down
+			//'hX75: btn_up          <= pressed; // up
+			//'hX72: btn_down        <= pressed; // down
 			'hX6B: btn_left        <= pressed; // left
 			'hX74: btn_right       <= pressed; // right
 			'h029: btn_fire        <= pressed; // space
 			'h014: btn_fire        <= pressed; // ctrl
 
-			'h005: btn_one_player  <= pressed; // F1
-			'h006: btn_two_players <= pressed; // F2
+			'h005: btn_start_1     <= pressed; // F1
+			'h006: btn_start_2     <= pressed; // F2
 
 			// JPAC/IPAC/MAME Style Codes
 			'h016: btn_start_1     <= pressed; // 1
 			'h01E: btn_start_2     <= pressed; // 2
 			'h02E: btn_coin_1      <= pressed; // 5
 			'h036: btn_coin_2      <= pressed; // 6
-			'h02D: btn_up_2        <= pressed; // R
-			'h02B: btn_down_2      <= pressed; // F
+			//'h02D: btn_up_2        <= pressed; // R
+			//'h02B: btn_down_2      <= pressed; // F
 			'h023: btn_left_2      <= pressed; // D
 			'h034: btn_right_2     <= pressed; // G
 			'h01C: btn_fire_2      <= pressed; // A
@@ -221,64 +221,48 @@ always @(posedge clk_sys) begin
 	end
 end
 
-reg btn_up    = 0;
-reg btn_down  = 0;
-reg btn_right = 0;
-reg btn_left  = 0;
-reg btn_fire  = 0;
-reg btn_one_player  = 0;
-reg btn_two_players = 0;
+//reg btn_up      = 0;
+//reg btn_down    = 0;
+reg btn_right   = 0;
+reg btn_left    = 0;
+reg btn_fire    = 0;
+reg btn_start_1 = 0;
+reg btn_start_2 = 0;
+reg btn_coin_1  = 0;
+reg btn_coin_2  = 0;
+//reg btn_up_2    = 0;
+//reg btn_down_2  = 0;
+reg btn_left_2  = 0;
+reg btn_right_2 = 0;
+reg btn_fire_2  = 0;
 
-reg btn_start_1=0;
-reg btn_start_2=0;
-reg btn_coin_1=0;
-reg btn_coin_2=0;
-reg btn_up_2=0;
-reg btn_down_2=0;
-reg btn_left_2=0;
-reg btn_right_2=0;
-reg btn_fire_2=0;
+wire no_rotate = status[2] | direct_video;
 
-wire no_rotate = status[2] & ~direct_video;
+wire m_left_2 = btn_left_2  | joy[1];
+wire m_right_2= btn_right_2 | joy[0];
+wire m_fire_2 = btn_fire_2  | joy[4];
 
-wire m_up_2     = no_rotate ? btn_left_2  | joy[1] : btn_up_2    | joy[3];
-wire m_down_2   = no_rotate ? btn_right_2 | joy[0] : btn_down_2  | joy[2];
-wire m_left_2   = no_rotate ? btn_down_2  | joy[2] : btn_left_2  | joy[1];
-wire m_right_2  = no_rotate ? btn_up_2    | joy[3] : btn_right_2 | joy[0];
-wire m_fire_2  = btn_fire_2 | joy[4];
+wire m_left   = btn_left    | joy[1];
+wire m_right  = btn_right   | joy[0];
+wire m_fire   = btn_fire    | joy[4];
 
-wire m_left   = no_rotate ? btn_down  | joy[2] : btn_left  | joy[1];
-wire m_right  = no_rotate ? btn_up    | joy[3] : btn_right | joy[0];
-wire m_fire   = btn_fire | joy[4];
-
-wire m_start1 = btn_one_player  | joy[5] | btn_start_1;
-wire m_start2 = btn_two_players | joy[6] | btn_start_2;
-wire m_coin   = m_start1 | m_start2 | joy[7];
-
+wire m_start1 = btn_start_1 | joy[5];
+wire m_start2 = btn_start_2 | joy[6];
+wire m_coin   = btn_coin_1  | btn_coin_2 | joy[7];
 
 reg ce_pix;
 always @(posedge clk_48m) begin
-        reg [2:0] div;
+	reg [2:0] div;
 
-        div <= div + 1'd1;
-        ce_pix <= !div;
+	div <= div + 1'd1;
+	ce_pix <= !div;
 end
 
-/*
-wire ce_vid;
-reg ce_pix;
-always @(posedge clk_48m) begin
-	reg old_clk;
-
-	old_clk <= ce_vid;
-	ce_pix <= old_clk & ~ce_vid;
-end
-*/
 wire HBlank,VBlank,hs,vs;
 wire [2:0] r,g;
 wire [1:0] b;
 
-arcade_rotate_fx #(288,224,8) arcade_video
+arcade_video #(288,224,8) arcade_video
 (
 	.*,
 
@@ -289,7 +273,7 @@ arcade_rotate_fx #(288,224,8) arcade_video
 	.VSync(~vs),
 
 	.rotate_ccw(0),	
-	.fx(status[5:3]),
+	.fx(status[5:3])
 );
 
 wire [9:0] audio;
@@ -312,7 +296,7 @@ galaga galaga
 	.video_b(b),
 	.video_hs(hs),
 	.video_vs(vs),
-	.video_ce(ce_vid),
+	//.video_ce(ce_vid),
 	.hblank(HBlank),
 	.vblank(VBlank),
 
@@ -321,7 +305,7 @@ galaga galaga
 	.b_test(1),
 	.b_svce(1), 
 
-	.coin(m_coin|btn_coin_1|btn_coin_2),
+	.coin(m_coin),
 
 	.start1(m_start1),
 	.left1(m_left),

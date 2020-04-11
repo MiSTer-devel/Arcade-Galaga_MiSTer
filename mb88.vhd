@@ -54,9 +54,6 @@ port(
  irq_n     : in std_logic;
  sc_in_n   : in std_logic;
  si_n      : in std_logic;
- sc_out_n  : out std_logic;
- so_n      : out std_logic;
- to_n      : out std_logic;
  
  rom_addr  : out std_logic_vector(10 downto 0);
  rom_data  : in  std_logic_vector( 7 downto 0)
@@ -223,13 +220,13 @@ ram_di <= r_a  when X"1D", r_a  when X"1A",
 					X"A" when others;
 
 					
-a_p1   <= r_a + X"1";
-a_p1_z <= '1' when a_p1 = X"0" else '0';
-a_p1_c <= '1' when a_p1 = X"0" else '0';
+--a_p1   <= r_a + X"1";
+--a_p1_z <= '1' when a_p1 = X"0" else '0';
+--a_p1_c <= '1' when a_p1 = X"0" else '0';
 
-a_m1   <= r_a - X"1";
-a_m1_z <= '1' when a_m1 = X"0" else '0';
-a_m1_c <= '1' when a_m1 = X"F" else '0';
+--a_m1   <= r_a - X"1";
+--a_m1_z <= '1' when a_m1 = X"0" else '0';
+--a_m1_c <= '1' when a_m1 = X"F" else '0';
 
 y_p1   <= r_y + X"1";
 y_p1_z <= '1' when y_p1 = X"0" else '0';
@@ -306,16 +303,16 @@ a_xor_m_z <= '1' when a_xor_m = X"0" else '0';
 do_da <= '1' when (r_a > X"9") or (r_cf = '1') else '0';
 
 daa <= r_a + X"6";   
-daa_z <= '1' when daa = X"0" else '0';
+--daa_z <= '1' when daa = X"0" else '0';
 daa_c <= '1' when r_a > X"9" else '0';
 
 das <= r_a + X"A";   
-das_z <= '1' when das = X"0" else '0';
+--das_z <= '1' when das = X"0" else '0';
 das_c <= '1' when r_a > X"5" else '0';
 
-dca <= r_a + X"F";   
-dca_z <= '1' when dca = X"0" else '0';
-dca_c <= '1' when dca = X"F" else '0';
+--dca <= r_a + X"F";   
+--dca_z <= '1' when dca = X"0" else '0';
+--dca_c <= '1' when dca = X"F" else '0';
 
 x_z  <= '1' when r_x  = X"0" else '0';
 y_z  <= '1' when r_y  = X"0" else '0';
@@ -377,10 +374,10 @@ begin
 		r_pio   <= (others=>'0'); 
 		r_th    <= (others=>'0');
 		r_tl    <= (others=>'0');
-		r_tp    <= (others=>'0');
-		r_ctr   <= (others=>'0');
+		--r_tp    <= (others=>'0');
+		--r_ctr   <= (others=>'0');
 		r_sb    <= (others=>'0');
-		r_sbcnt <= (others=>'0');
+		--r_sbcnt <= (others=>'0');
 		interrupt_pending <= '0';
 		stack <= (others=>(others=>'0'));
 		single_byte_op <= '1';

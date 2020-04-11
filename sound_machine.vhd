@@ -71,36 +71,37 @@ sum <= ('0' & snd_ram_0_do) + ('0' & snd_ram_1_do) + ("0000" & sum_r(4));
 
 process (clock_18)
 begin
- if rising_edge(clock_18) and ena = '1' then
-	if snd_seq_do(3) = '0' then
-		sum_r <= (others => '0');
-		sum_3_rr <= '0';
-	elsif snd_seq_do(0) = '0' then
-		sum_r <= sum;
-		sum_3_rr <= sum_r(3);
-	end if ;
+ if rising_edge(clock_18) then
+	if ena = '1' then
+		if snd_seq_do(3) = '0' then
+			sum_r <= (others => '0');
+			sum_3_rr <= '0';
+		elsif snd_seq_do(0) = '0' then
+			sum_r <= sum;
+			sum_3_rr <= sum_r(3);
+		end if ;
 
-	snd_samples_addr <= snd_ram_0_do(2 downto 0) & sum_r(3 downto 0) & sum_3_rr;
-	
-	if snd_seq_do(2) = '0' then
-		if hcnt(5 downto 2) = X"5" then
-			samples_ch0 <= snd_samples_do(3 downto 0);
-			volume_ch0  <= snd_ram_1_do;
+		snd_samples_addr <= snd_ram_0_do(2 downto 0) & sum_r(3 downto 0) & sum_3_rr;
+		
+		if snd_seq_do(2) = '0' then
+			if hcnt(5 downto 2) = X"5" then
+				samples_ch0 <= snd_samples_do(3 downto 0);
+				volume_ch0  <= snd_ram_1_do;
+			end if;
+			if hcnt(5 downto 2) = X"A" then
+				samples_ch1 <= snd_samples_do(3 downto 0);
+				volume_ch1  <= snd_ram_1_do;
+			end if;
+			if hcnt(5 downto 2) = X"F" then
+				samples_ch2 <= snd_samples_do(3 downto 0);
+				volume_ch2  <= snd_ram_1_do;
+			end if;
 		end if;
-		if hcnt(5 downto 2) = X"A" then
-			samples_ch1 <= snd_samples_do(3 downto 0);
-			volume_ch1  <= snd_ram_1_do;
-		end if;
-		if hcnt(5 downto 2) = X"F" then
-			samples_ch2 <= snd_samples_do(3 downto 0);
-			volume_ch2  <= snd_ram_1_do;
-		end if;
+		
+		audio <= ("00" & samples_ch0) * volume_ch0 +
+					("00" & samples_ch1) * volume_ch1 +
+						("00" & samples_ch2) * volume_ch2;
 	end if;
-	
-	audio <= ("00" & samples_ch0) * volume_ch0 +
-	         ("00" & samples_ch1) * volume_ch1 +
-				   ("00" & samples_ch2) * volume_ch2;
-	
  end if;
 end process;
 
