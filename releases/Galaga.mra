@@ -1,15 +1,22 @@
 <misterromdescription>
-  <rbf>Galaga</rbf>
-  <rom index="0" zip="galagamw.zip" md5="32d57ddcdf7ab064ac43b47a7d7e92aa">
-        <part name="3200a.bin"/>
-        <part name="3300b.bin"/>
-        <part name="3400c.bin"/>
-        <part name="3500d.bin"/>
-        <part name="3600e.bin"/>
-        <part name="3700g.bin"/>
-        <part name="2800l.bin"/>
-        <part name="2700k.bin"/>
-        <part name="2600j.bin"/>
-        <part zip="namco54.zip" name="54xx.bin"/>
-  </rom>
+	<name>Galaga (Midway set 1)</name>
+	<mameversion>0220</mameversion>
+	<setname>galagamw</setname>
+	<mratimestamp>20200427161917</mratimestamp>
+	<year>1981</year>
+	<manufacturer>Namco (Midway license)</manufacturer>
+	<category>Space / Galaxian</category>
+	<rbf>galaga</rbf>
+	<rom index="0" zip="galaga.zip|galagamw.zip|namco54.zip" md5="32d57ddcdf7ab064ac43b47a7d7e92aa">
+		<part crc="3ef0b053" name="3200a.bin"/>
+		<part crc="1b280831" name="3300b.bin"/>
+		<part crc="16233d33" name="3400c.bin"/>
+		<part crc="0aaf5c23" name="3500d.bin"/>
+		<part crc="bc556e76" name="3600e.bin"/>
+		<part crc="b07f0aa4" name="3700g.bin"/>
+		<part crc="ad447c80" name="2800l.bin"/>
+		<part crc="dd6f1afc" name="2700k.bin"/>
+		<part crc="58b2f47c" name="2600j.bin"/>
+		<part crc="ee7357e0" name="54xx.bin"/>
+	</rom>
 </misterromdescription>
