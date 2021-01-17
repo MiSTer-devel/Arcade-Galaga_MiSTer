@@ -249,7 +249,7 @@ arcade_video #(288,8) arcade_video
 	.*,
 
 	.clk_video(clk_48m),
-
+	//.ce_pix(ce_vid),
 	.RGB_in({r,g,b}),
 	.HSync(~hs),
 	.VSync(~vs),
@@ -277,7 +277,7 @@ galaga galaga
 	.video_b(b),
 	.video_hs(hs),
 	.video_vs(vs),
-	//.video_ce(ce_vid),
+	.video_ce(ce_vid),
 	.hblank(HBlank),
 	.vblank(VBlank),
 
