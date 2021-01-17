@@ -231,14 +231,21 @@ wire m_start2 = joy[6];
 wire m_coin   = joy[7];
 
 reg ce_pix;
+reg [7:0] rgb;
+reg HSync,VSync,HBlank,VBlank;
 always @(posedge clk_48m) begin
 	reg [2:0] div;
-
 	div <= div + 1'd1;
+	
 	ce_pix <= !div;
+	rgb <= {r,g,b};
+	HSync <= ~hs;
+	VSync <= ~vs;
+	HBlank <= hbl;
+	VBlank <= vbl;
 end
 
-wire HBlank,VBlank,hs,vs;
+wire hbl,vbl,hs,vs;
 wire [2:0] r,g;
 wire [1:0] b;
 wire rotate_ccw = 0;
@@ -249,10 +256,7 @@ arcade_video #(288,8) arcade_video
 	.*,
 
 	.clk_video(clk_48m),
-	//.ce_pix(ce_vid),
-	.RGB_in({r,g,b}),
-	.HSync(~hs),
-	.VSync(~vs),
+	.RGB_in(rgb),
 
 	.fx(status[5:3])
 );
@@ -277,9 +281,8 @@ galaga galaga
 	.video_b(b),
 	.video_hs(hs),
 	.video_vs(vs),
-	.video_ce(ce_vid),
-	.hblank(HBlank),
-	.vblank(VBlank),
+	.hblank(hbl),
+	.vblank(vbl),
 
 	.audio(audio),
 

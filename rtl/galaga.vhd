@@ -329,6 +329,7 @@ architecture struct of galaga is
  signal romb_cs   : std_logic;
  signal romm_cs   : std_logic;
 
+ signal ce        : std_logic;
 begin
 
 clock_18n <= not clock_18;
@@ -379,7 +380,8 @@ begin
  end if;
 end process;
 
-video_ce <= '1' when slot = "011" or slot = "000" else '0';
+ce <= '1' when slot = "011" or slot = "000" else '0';
+video_ce <= ce;
 
 --- SPRITES MACHINE ---
 -----------------------
@@ -639,8 +641,9 @@ rgb_palette_addr <= ('0' & spbits_rd) when bgbits = "1111" else ('1' & bgbits);
 
 process (clock_18, rgb_palette_addr)
 begin
- if rising_edge(clock_18)then
-  if rgb_palette_addr(3 downto 0) = "1111" then
+ if rising_edge(clock_18) then
+  if ce = '1' then
+	if rgb_palette_addr(3 downto 0) = "1111" then
 		video_r <= star_color(1 downto 0) & "0";
 		video_g <= star_color(3 downto 2) & "0";
 		video_b <= star_color(5 downto 4);		
@@ -649,6 +652,7 @@ begin
 		video_g <= rgb_palette_do(5 downto 3);
 		video_b <= rgb_palette_do(7 downto 6);	
 	end if;
+  end if;
  end if;
 end process;
 
