@@ -220,7 +220,7 @@ architecture struct of galaga is
  signal cs54XX_do         : std_logic_vector( 7 downto 0);
  
  signal cs54xx_ena      : std_logic;
- signal cs54xx_ena_div  : std_logic_vector(2 downto 0) := "000";
+ signal cs54xx_ena_div  : std_logic_vector(3 downto 0) := "0000";
  signal cs5Xxx_rw       : std_logic;
  
  signal cs54xx_rom_addr : std_logic_vector(10 downto 0); 
@@ -375,7 +375,10 @@ begin
 	if slot = "000" then cpu2_ena <= '1';	end if;	
 	if slot = "001" then cpu3_ena <= '1';	end if;
 	
-	if slot = "000" and cs54xx_ena_div = "000" then cs54xx_ena <= '1'; end if;
+	if slot = "000" and cs54xx_ena_div = "1100" then
+		cs54xx_ena_div <= "0000";
+		cs54xx_ena <= '1';
+	end if;
 		
  end if;
 end process;
