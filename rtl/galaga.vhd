@@ -135,7 +135,14 @@ port(
 
 	dn_addr        : in  std_logic_vector(15 downto 0);
 	dn_data        : in  std_logic_vector(7 downto 0);
-	dn_wr          : in  std_logic
+	dn_wr          : in  std_logic;
+
+	pause            : in  std_logic;
+
+	hs_address       : in  std_logic_vector(15 downto 0);
+	hs_data_out      : out std_logic_vector(7 downto 0);
+	hs_data_in       : in  std_logic_vector(7 downto 0);
+	hs_write         : in  std_logic
 );
 end galaga;
 
@@ -330,6 +337,11 @@ architecture struct of galaga is
  signal romm_cs   : std_logic;
 
  signal ce        : std_logic;
+ 
+ signal hs_cs_bgram       : std_logic;
+ signal hs_cs_spram       : std_logic;
+ signal hs_data_out_bgram : std_logic_vector(7 downto 0);
+ signal hs_data_out_spram : std_logic_vector(7 downto 0);
 begin
 
 clock_18n <= not clock_18;
@@ -612,7 +624,7 @@ process (clock_18)
 begin
  if rising_edge(clock_18) then 
 
-	if ena_vidgen = '1' then
+	if ena_vidgen = '1' and pause = '0' then
 		if hcnt = std_logic_vector(to_unsigned(256+8,9)) then
 			stars_hcnt <= "000000000";
 			stars_vcnt <= stars_vcnt + "000000001";
@@ -666,7 +678,7 @@ end process;
 sound_machine : entity work.sound_machine
 port map(
 clock_18  => clock_18,
-ena       => ena_snd_machine,
+ena       => ena_snd_machine and not pause,
 hcnt      => hcnt(5 downto 0),
 cpu_addr  => mux_addr(3 downto 0), 
 cpu_do    => mux_cpu_do(3 downto 0), 
@@ -999,7 +1011,7 @@ port map(
   RESET_n => reset_n,
   CLK_n   => clock_18,
 	CLKEN   => cpu1_ena,
-  WAIT_n  => '1',
+  WAIT_n  => not pause,
   INT_n   => cpu1_irq_n,
   NMI_n   => cpu1_nmi_n,
   BUSRQ_n => '1',
@@ -1024,7 +1036,7 @@ port map(
   RESET_n => reset_cpu_n,
   CLK_n   => clock_18,
 	CLKEN   => cpu2_ena,
-  WAIT_n  => '1',
+  WAIT_n  => not pause,
   INT_n   => cpu2_irq_n,
   NMI_n   => '1', --cpu_int_n,
   BUSRQ_n => '1',
@@ -1049,7 +1061,7 @@ port map(
   RESET_n => reset_cpu_n,
   CLK_n   => clock_18,
 	CLKEN   => cpu3_ena,
-  WAIT_n  => '1',
+  WAIT_n  => not pause,
   INT_n   => '1',
   NMI_n   => cpu3_nmi_n,
   BUSRQ_n => '1',
@@ -1181,25 +1193,42 @@ port map(
  data => bgpalette_do
 );
 
+-- Highscore mux setup
+hs_cs_bgram <= '1' when hs_address(15 downto 11) = "10000" else '0';
+hs_cs_spram <= '1' when hs_address(15 downto 11) = "10001" else '0';
+hs_data_out <= hs_data_out_bgram when hs_cs_bgram = '1' else hs_data_out_spram;
+
 -- background char RAM   0x8000-0x87FF
-bgram : entity work.gen_ram
-generic map( dWidth => 8, aWidth => 11)
+bgram : entity work.dpram
+generic map(11,8)
 port map(
- clk  => clock_18n,
- we   => bgram_we,
- addr => mux_addr(10 downto 0),
- d    => mux_cpu_do,
- q    => bgram_do
+ clock_a   => clock_18n,
+ wren_a    => bgram_we,
+ address_a => mux_addr(10 downto 0),
+ data_a    => mux_cpu_do,
+ q_a       => bgram_do,
+ 
+ clock_b   => clock_18,
+ wren_b    => hs_write and hs_cs_bgram,
+ address_b => hs_address(10 downto 0),
+ data_b    => hs_data_in,
+ q_b       => hs_data_out_bgram
 );
 -- working/sprite register RAM1   0x8800-0x8BFF / 0x8C00-0x8FFF
-wram1 : entity work.gen_ram
-generic map( dWidth => 8, aWidth => 10)
+wram1 : entity work.dpram
+generic map(10,8)
 port map(
- clk  => clock_18n,
- we   => wram1_we,
- addr => mux_addr(9 downto 0),
- d    => mux_cpu_do,
- q    => wram1_do
+ clock_a   => clock_18n,
+ wren_a    => wram1_we,
+ address_a => mux_addr(9 downto 0),
+ data_a    => mux_cpu_do,
+ q_a       => wram1_do,
+ 
+ clock_b   => clock_18,
+ wren_b    => hs_write and hs_cs_spram,
+ address_b => hs_address(9 downto 0),
+ data_b    => hs_data_in,
+ q_b       => hs_data_out_spram
 );
 -- working/sprite register RAM2   0x9000-0x93FF / 0x9400-0x97FF
 wram2 : entity work.gen_ram

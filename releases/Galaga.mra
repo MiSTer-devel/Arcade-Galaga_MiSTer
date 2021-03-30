@@ -19,4 +19,12 @@
 		<part crc="58b2f47c" name="2600j.bin"/>
 		<part crc="ee7357e0" name="54xx.bin"/>
 	</rom>
+	<rom index="3" md5="none">
+		<part>
+		11 2A 88 00 00 FF 00 02 00 02 00 01 00 FF 00 00
+		00 00 8A 20 2D 00 18 00
+		00 00 83 ED 06 00 24 00
+		</part>
+	</rom>
+	<nvram index="4" size="51"/>
 </misterromdescription>
