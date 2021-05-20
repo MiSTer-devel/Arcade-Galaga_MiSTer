@@ -1,0 +1,57 @@
+<misterromdescription>
+	<name>Galaga</name>
+	<region></region>
+	<homebrew>no</homebrew>
+	<bootleg>no</bootleg>
+	<version>Midway, Set 1</version>
+	<alternative></alternative>
+	<platform></platform>
+	<series>Galaxian</series>
+	<year>1981</year>
+	<manufacturer>Namco</manufacturer>
+	<manufacturer>Midway</manufacturer>
+	<category>Shooter - Gallery</category>
+
+	<setname>galagamw</setname>
+	<parent>galaga</parent>
+	<mameversion>0220</mameversion>
+	<rbf>galaga</rbf>
+	<about></about>
+
+	<resolution>15kHz</resolution>
+	<rotation>vertical (cw)</rotation>
+	<flip>no</flip>
+
+	<players>2 (alternating)</players>
+	<joystick>2-way horizontal</joystick>
+	<special_controls></special_controls>
+	<num_buttons>1</num_buttons>
+	<button_names></button_names>
+
+	<switches></switches>
+
+	<rom index="1"></rom>
+	<rom index="0" md5="32d57ddcdf7ab064ac43b47a7d7e92aa" zip="galaga.zip|galagamw.zip|namco54.zip">
+		<part crc="3ef0b053" name="3200a.bin"></part>
+		<part crc="1b280831" name="3300b.bin"></part>
+		<part crc="16233d33" name="3400c.bin"></part>
+		<part crc="0aaf5c23" name="3500d.bin"></part>
+		<part crc="bc556e76" name="3600e.bin"></part>
+		<part crc="b07f0aa4" name="3700g.bin"></part>
+		<part crc="ad447c80" name="2800l.bin"></part>
+		<part crc="dd6f1afc" name="2700k.bin"></part>
+		<part crc="58b2f47c" name="2600j.bin"></part>
+		<part crc="ee7357e0" name="54xx.bin"></part>
+		</rom>
+	<rom index="2"></rom>
+	<rom index="3" md5="none">
+		
+		</rom>
+	<rom index="4"></rom>
+
+	<nvram index="4" size="51"></nvram>
+
+	<remark></remark>
+
+	<mratimestamp>20210430005030</mratimestamp>
+</misterromdescription>
