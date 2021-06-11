@@ -45,8 +45,12 @@
 		</rom>
 	<rom index="2"></rom>
 	<rom index="3" md5="none">
-		
-		</rom>
+		<part>
+		11 2A 88 00 00 FF 00 02 00 02 00 01 00 FF 00 00
+		00 00 8A 20 2D 00 18 00
+		00 00 83 ED 06 00 24 00
+		</part>
+	</rom>
 	<rom index="4"></rom>
 
 	<nvram index="4" size="51"></nvram>
