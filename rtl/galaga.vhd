@@ -635,14 +635,16 @@ process (clock_18)
 begin
  if rising_edge(clock_18) then
 
-	if ena_vidgen = '1' and pause = '0' then
+	if ena_vidgen = '1' then
 		if hcnt = std_logic_vector(to_unsigned(256+8,9)) then
 			stars_hcnt <= flip_screen & "00000000";
 			stars_vcnt <= stars_vcnt + "000000001";
 			if vcnt = std_logic_vector(to_unsigned(128+6,9)) then
 				stars_vcnt <= "000000000";
-				stars_offset <= stars_offset + 
-					std_logic_vector(to_signed(speeds(to_integer(unsigned(cs05XX_ctrl(2 downto 0)))),8));
+				if pause = '0' then
+					stars_offset <= stars_offset +
+						std_logic_vector(to_signed(speeds(to_integer(unsigned(cs05XX_ctrl(2 downto 0)))),8));
+				end if;
 			end if;
 		else
 			stars_hcnt <= stars_hcnt + "000000001" - ("" & flip_screen & "0");
