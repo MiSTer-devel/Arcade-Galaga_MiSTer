@@ -279,7 +279,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_dout(ioctl_dout),
 	.ioctl_din(ioctl_din),
 	.ioctl_index(ioctl_index),
-	
+
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1)
 );
@@ -334,11 +334,11 @@ reg HSync,VSync,HBlank,VBlank;
 always @(posedge clk_48m) begin
 	reg [2:0] div;
 	div <= div + 1'd1;
-	
+
 	ce_pix <= !div;
-	
+
 	rgb_out = dim_video ? {r >> 1,g >> 1, b >> 1} : {r,g,b};
-	
+
 	HSync <= ~hs;
 	VSync <= ~vs;
 	HBlank <= hbl;

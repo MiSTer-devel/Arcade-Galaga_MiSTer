@@ -3,7 +3,7 @@
 -- http://darfpga.blogspot.fr
 ---------------------------------------------------------------------------------
 -- gen_ram.vhd & io_ps2_keyboard
--------------------------------- 
+--------------------------------
 -- Copyright 2005-2008 by Peter Wendrich (pwsoft@syntiac.com)
 -- http://www.syntiac.com/fpga64.html
 ---------------------------------------------------------------------------------
@@ -20,7 +20,7 @@
 -- Galaga releases
 --
 -- Release 0.3 - 06/05/2018 - Dar
---    add mb88 explosion sound ship 
+--    add mb88 explosion sound ship
 --
 -- Release 0.2 - 06/11/2017 - Dar
 --    fixes twice bullets on single shot => add edge detection en fire
@@ -35,13 +35,13 @@
 --   TV 15KHz mode only (atm)
 --   Coctail mode ok
 --   Sound ok
---   Starfield from MAME information  
+--   Starfield from MAME information
 
 --  Use with MAME roms from galagamw.zip
 --
 --  Use make_galaga_proms.bat to build vhd file from binaries
 
--- 	 galaga_cpu1.vhd   : 3200a.bin, 3300b.bin, 3400c.bin,3500d.bin, 
+-- 	 galaga_cpu1.vhd   : 3200a.bin, 3300b.bin, 3400c.bin,3500d.bin,
 --   galaga_cpu2.vhd   : 3600e.bin
 --   galaga_cpu3.vhd   : 3700g.bin
 --   bg_graphx.vhd     : 2600j.bin
@@ -56,18 +56,18 @@
 --
 --    3xZ80 CPU accessing each own program rom and shared ram/devices
 --
---    One char tile map 32x28 (called background/bg although being front of other layers) 
+--    One char tile map 32x28 (called background/bg although being front of other layers)
 --      3 colors/64sets among 16 colors
---      1Ko ram, 4Ko rom graphics, 4pixels of 2bits/byte 
+--      1Ko ram, 4Ko rom graphics, 4pixels of 2bits/byte
 --      full emulation in vhdl
 --
---    64 sprites with priorities, flip H/V, 2x size H/V, 
+--    64 sprites with priorities, flip H/V, 2x size H/V,
 --      3 colors/64sets among 16 colors (different of char colors).
 --      8Ko rom graphics, 4pixels of 2bits/byte
 --      full emulation in vhdl (improved capabilities : more sprites/scanline)
 --
---    Namco 05XX Starfield 
---      4 sets, 63 stars/set, 2 set displayed at one time for blinking   
+--    Namco 05XX Starfield
+--      4 sets, 63 stars/set, 2 set displayed at one time for blinking
 --      6bits colors: 2red/2green/2blue
 --      full emulation in vhdl (from MAME information)
 --
@@ -75,13 +75,13 @@
 --      8bits 3red/3green/2blue
 --      full emulation in vhdl
 --
---    Namco 06XX for 51/54XX control 
+--    Namco 06XX for 51/54XX control
 --      simplified emulation in vhdl
 --
---    Namco 51XX for coin/credit management 
+--    Namco 51XX for coin/credit management
 --      simplified emulation in vhdl : 1coin/1credit, 1 or 2 players start
 --
---    Namco 54XX for sound effects 
+--    Namco 54XX for sound effects
 --      m88 ok
 --
 --    Namco sound waveform and frequency synthetizer
@@ -91,10 +91,10 @@
 --      full emulation in vhdl from what I think they should do.
 --
 --    Working ram : 3x1Kx8bits shared
---    Sprites ram : 1 scan line delay flip/flop 512x4bits  
+--    Sprites ram : 1 scan line delay flip/flop 512x4bits
 --    Sound registers ram : 2x16x4bits
 --    Sound sequencer rom : 256x4bits (3 sequential 4 bits adders)
---    Sound wavetable rom : 256x4bits 8 waveform of 32 samples of 4bits/level  
+--    Sound wavetable rom : 256x4bits 8 waveform of 32 samples of 4bits/level
 ---------------------------------------------------------------------------------
 
 library ieee;
@@ -175,7 +175,7 @@ architecture struct of galaga is
  signal cpu2_mreq_n : std_logic;
  signal cpu2_irq_n : std_logic;
  signal cpu2_m1_n   : std_logic;
- 
+
  signal cpu3_addr   : std_logic_vector(15 downto 0);
  signal cpu3_di     : std_logic_vector( 7 downto 0);
  signal cpu3_do     : std_logic_vector( 7 downto 0);
@@ -190,7 +190,7 @@ architecture struct of galaga is
  signal cpu1_rom_do : std_logic_vector( 7 downto 0);
  signal cpu2_rom_do : std_logic_vector( 7 downto 0);
  signal cpu3_rom_do : std_logic_vector( 7 downto 0);
- 
+
  signal bgram_do    : std_logic_vector( 7 downto 0);
  signal bgram_we    : std_logic;
  signal wram1_do    : std_logic_vector( 7 downto 0);
@@ -223,30 +223,28 @@ architecture struct of galaga is
  signal change_next               : std_logic;
  signal credit_bcd_0              : std_logic_vector( 3 downto 0);
  signal credit_bcd_1              : std_logic_vector( 3 downto 0);
- 
+
  signal cs54XX_do         : std_logic_vector( 7 downto 0);
- 
+
  signal cs54xx_ena      : std_logic;
  signal cs54xx_ena_div  : std_logic_vector(3 downto 0) := "0000";
  signal cs5Xxx_rw       : std_logic;
- 
- signal cs54xx_rom_addr : std_logic_vector(10 downto 0); 
- signal cs54xx_rom_do   : std_logic_vector( 7 downto 0); 
- 
- signal cs54xx_irq_n      : std_logic := '1'; 
- signal cs54xx_irq_cnt    : std_logic_vector( 3 downto 0); 
- signal cs54xx_k_port_in  : std_logic_vector( 3 downto 0); 
- signal cs54xx_r0_port_in : std_logic_vector( 3 downto 0); 
- signal cs54xx_audio_1    : std_logic_vector( 3 downto 0); 
- signal cs54xx_audio_2    : std_logic_vector( 3 downto 0); 
- signal cs54xx_audio_3    : std_logic_vector( 3 downto 0); 
+
+ signal cs54xx_rom_addr : std_logic_vector(10 downto 0);
+ signal cs54xx_rom_do   : std_logic_vector( 7 downto 0);
+
+ signal cs54xx_irq_n      : std_logic := '1';
+ signal cs54xx_irq_cnt    : std_logic_vector( 3 downto 0);
+ signal cs54xx_k_port_in  : std_logic_vector( 3 downto 0);
+ signal cs54xx_r0_port_in : std_logic_vector( 3 downto 0);
+ signal cs54xx_audio_1    : std_logic_vector( 3 downto 0);
+ signal cs54xx_audio_2    : std_logic_vector( 3 downto 0);
+ signal cs54xx_audio_3    : std_logic_vector( 3 downto 0);
 
  signal cs05XX_ctrl       : std_logic_vector( 5 downto 0);
- 
- --signal dip_switch_a  : std_logic_vector (7 downto 0);
- --signal dip_switch_b  : std_logic_vector (7 downto 0);
+
  signal dip_switch_do : std_logic_vector (1 downto 0);
- 
+
  signal bgtile_num     : std_logic_vector( 7 downto 0);
  signal bgtile_num_r   : std_logic_vector( 7 downto 0);
  signal bgtile_color   : std_logic_vector( 7 downto 0);
@@ -254,14 +252,14 @@ architecture struct of galaga is
  signal bggraphx_addr  : std_logic_vector(11 downto 0);
  signal bggraphx_do    : std_logic_vector( 7 downto 0);
  signal bgpalette_addr : std_logic_vector( 7 downto 0);
- signal bgpalette_do   : std_logic_vector( 7 downto 0); 
+ signal bgpalette_do   : std_logic_vector( 7 downto 0);
  signal bgbits         : std_logic_vector( 3 downto 0);
 
  signal rgb_palette_addr : std_logic_vector( 4 downto 0);
- signal rgb_palette_do   : std_logic_vector( 7 downto 0); 
- 
+ signal rgb_palette_do   : std_logic_vector( 7 downto 0);
+
  signal sprite_num     : std_logic_vector(5 downto 0);
- signal sprite_state   : std_logic_vector(2 downto 0); 
+ signal sprite_state   : std_logic_vector(2 downto 0);
  signal sprite_line    : std_logic_vector(7 downto 0);
  signal sptile_num     : std_logic_vector(7 downto 0);
  signal sptile_color   : std_logic_vector(7 downto 0);
@@ -275,7 +273,7 @@ architecture struct of galaga is
  signal spgraphx_addr  : std_logic_vector(12 downto 0);
  signal spgraphx_do    : std_logic_vector(7 downto 0);
  signal sppalette_addr : std_logic_vector(7 downto 0);
- signal sppalette_do   : std_logic_vector(7 downto 0); 
+ signal sppalette_do   : std_logic_vector(7 downto 0);
  signal spbits_wr      : std_logic_vector(3 downto 0);
  signal spbits_rd      : std_logic_vector(3 downto 0);
  signal spflip_V ,spflip_H  : std_logic;
@@ -293,10 +291,10 @@ architecture struct of galaga is
  signal spram2_di      : std_logic_vector(3 downto 0);
  signal spram2_do      : std_logic_vector(3 downto 0);
  signal spram2_we      : std_logic;
- 
+
  signal stars_hcnt      : std_logic_vector( 8 downto 0);
  signal stars_vcnt      : std_logic_vector( 8 downto 0);
- signal stars_offset    : std_logic_vector( 7 downto 0); 
+ signal stars_offset    : std_logic_vector( 7 downto 0);
  signal stars_set0_addr : std_logic_vector( 6 downto 0);
  signal stars_set0_data : std_logic_vector(15 downto 0);
  signal star_color_set0 : std_logic_vector( 5 downto 0);
@@ -310,7 +308,7 @@ architecture struct of galaga is
  signal stars_set3_data : std_logic_vector(15 downto 0);
  signal star_color_set3 : std_logic_vector( 5 downto 0);
  signal star_color      : std_logic_vector( 5 downto 0);
- 
+
  signal irq1_clr_n  : std_logic;
  signal irq2_clr_n  : std_logic;
  signal nmion_n     : std_logic;
@@ -323,7 +321,7 @@ architecture struct of galaga is
  signal coin_r   : std_logic;
  signal start1_r : std_logic;
  signal start2_r : std_logic;
- 
+
  signal fire1_r   : std_logic;
  signal fire2_r   : std_logic;
  signal fire1_mem : std_logic;
@@ -347,10 +345,8 @@ begin
 clock_18n <= not clock_18;
 reset_n   <= not reset;
 
---dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
---dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
-dip_switch_do <= 	dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) & 
-									dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
+dip_switch_do <= dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) &
+                 dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
 
 audio <= ("00" & cs54xx_audio_1 &  "0000" ) + ("00" & cs54xx_audio_2 &  "0000" )+ ('0'&snd_audio(9 downto 1));
 
@@ -359,8 +355,8 @@ audio <= ("00" & cs54xx_audio_1 &  "0000" ) + ("00" & cs54xx_audio_2 &  "0000" )
 -- 3MHz for cpu, background and sprite machine
 
 --       slots  |   0  |   1  |   2  |    3   |   4   |   5   |
--- wram  access | cpu1 | cpu2 | cpu3 | bgram  | spram | n.u.  | 
--- sound access | cpu1 | cpu2 | cpu3 | sndram | n.u.  | sndram| 
+-- wram  access | cpu1 | cpu2 | cpu3 | bgram  | spram | n.u.  |
+-- sound access | cpu1 | cpu2 | cpu3 | sndram | n.u.  | sndram|
 
 -- enable signals are one slot early
 
@@ -368,30 +364,30 @@ process (clock_18)
 begin
  if rising_edge(clock_18) then
   ena_vidgen      <= '0';
-	ena_snd_machine <= '0';
+  ena_snd_machine <= '0';
   cpu1_ena   <= '0';
   cpu2_ena   <= '0';
   cpu3_ena   <= '0';
   cs54xx_ena <= '0';
-	
+
   if slot = "101" then
    slot <= (others => '0');
 	cs54xx_ena_div <= cs54xx_ena_div +'1';
 	else
 		slot <= std_logic_vector(unsigned(slot) + 1);
-  end if;   
-	
-	if slot = "101" or slot = "010" then ena_vidgen      <= '1';	end if;	
-	if slot = "010" or slot = "100" then ena_snd_machine <= '1';	end if;	
+  end if;
+
+	if slot = "101" or slot = "010" then ena_vidgen      <= '1';	end if;
+	if slot = "010" or slot = "100" then ena_snd_machine <= '1';	end if;
 	if slot = "101" then cpu1_ena <= '1';	end if;
-	if slot = "000" then cpu2_ena <= '1';	end if;	
+	if slot = "000" then cpu2_ena <= '1';	end if;
 	if slot = "001" then cpu3_ena <= '1';	end if;
-	
+
 	if slot = "000" and cs54xx_ena_div = "1100" then
 		cs54xx_ena_div <= "0000";
 		cs54xx_ena <= '1';
 	end if;
-		
+
  end if;
 end process;
 
@@ -400,7 +396,7 @@ video_ce <= ce;
 
 --- SPRITES MACHINE ---
 -----------------------
-	
+
 -- 0x8B80 - 0x8BFF : 64 sprites tile num, tile color
 -- 0x9380 - 0x93FF : 64 sprites pos v, pos h lsb
 -- 0x9B80 - 0x9BFF : 64 sprites 2xH, 2xV, flip H, flip V
@@ -410,13 +406,13 @@ sprite_line <= wram2_do + vcnt(7 downto 0);
 
 process (clock_18, slot)
 begin
- if rising_edge(clock_18) then 
+ if rising_edge(clock_18) then
 	if hcnt = std_logic_vector(to_unsigned(191,9)) then
 		sprite_num   <= "000000";
 		sprite_state <= "000";
 		spram_rd_addr<= "111101111";
 	end if;
-	
+
 	if slot = "100" and sprite_state = "000" then
 		sptile_num   <= wram1_do;
 		spdata       <= wram3_do(3 downto 0);
@@ -428,12 +424,12 @@ begin
 			if sprite_num = "111111" then
 				sprite_state <= "111";
 			else
-				sprite_num <= sprite_num + "000001";			
+				sprite_num <= sprite_num + "000001";
 				sprite_state <= "000";
-			end if;		
-		end if;	
+			end if;
+		end if;
 	end if;
-	
+
 	if slot = "100" and sprite_state = "001" then
 		sptile_color  <= wram1_do;
 		spram_wr_addr <= wram3_do(0) & wram2_do;
@@ -444,22 +440,22 @@ begin
 	if sprite_state = "010" then
 		sphcnt <= sphcnt + "00001";
 		sprite_state  <= "011";
-	end if; 
+	end if;
 
 	if sprite_state = "011" then
 		sphcnt <= sphcnt + "00001";
 		spram_wr_addr <= spram_wr_addr + "000000001";
 		if 	(sphcnt = "01111" and spdata(2) = '0' ) or   -- size H x 1  -- fixed Dar : 04/11/2017
-				(sphcnt = "11111" and spdata(2) = '1' ) then -- size H x 2  -- fixed Dar : 04/11/2017 
+				(sphcnt = "11111" and spdata(2) = '1' ) then -- size H x 2  -- fixed Dar : 04/11/2017
 			if sprite_num = "111111" then
 				sprite_state <= "111";
 			else
-				sprite_num <= sprite_num + "000001";			
+				sprite_num <= sprite_num + "000001";
 				sprite_state <= "000";
-			end if;		
+			end if;
 		end if;
-	end if; 
-	
+	end if;
+
 	if slot = "000" or slot = "011" then
 		if vcnt(0) = '1' then
 			spbits_rd <= spram2_do;
@@ -467,12 +463,12 @@ begin
 			spbits_rd <= spram1_do;
 		end if;
 	end if;
-	
+
 	spram_clr <= '0';
 	if slot = "001" or slot = "100" then
 		spram_clr <= '1';
 	end if;
-	
+
 	if slot = "010" or slot = "101" then
 		spram_rd_addr <= spram_rd_addr + "000000001";
 	end if;
@@ -487,9 +483,9 @@ spram2_addr <= spram_wr_addr when vcnt(0) = '0' else spram_rd_addr;
 
 spram1_di  <= spbits_wr when vcnt(0) = '1' else "1111";
 spram2_di  <= spbits_wr when vcnt(0) = '0' else "1111";
- 
+
 spram1_we <= spram_we when vcnt(0) = '1' else spram_clr;
-spram2_we <= spram_we when vcnt(0) = '0' else spram_clr; 
+spram2_we <= spram_we when vcnt(0) = '0' else spram_clr;
 
 spflip_H <= spdata(0) xor flip_h; spflip_2H <= spflip_H & spflip_H;
 spflip_V <= spdata(1); spflip_2V <= spflip_V & spflip_V;
@@ -530,7 +526,7 @@ bgtile_addr <= 	"10000" & hcnt(1) & vcnt(7 downto 3) & hcnt(7 downto 3)         
 
 process (clock_18, slot)
 begin
- if rising_edge(clock_18) then 
+ if rising_edge(clock_18) then
 		if slot = "011" and hcnt(2 downto 1) = "00" then
 			bgtile_num <= bgram_do;
 		end if;
@@ -553,7 +549,7 @@ bgpalette_addr <= bgtile_color_r(5 downto 0) &
 
 bgbits <= bgpalette_do(3 downto 0);
 
---- STARS MACHINE --- 
+--- STARS MACHINE ---
 ---------------------
 
 stars_data : entity work.stars
@@ -619,10 +615,10 @@ port  map(
 
 process (clock_18)
 	subtype speed is integer range -3 to 3;
-	type speed_array is array(0 to 7) of speed; 
-	constant speeds : speed_array := ( -1, -2, -3, 0, 3, 2, 1, 0 ); 
+	type speed_array is array(0 to 7) of speed;
+	constant speeds : speed_array := ( -1, -2, -3, 0, 3, 2, 1, 0 );
 begin
- if rising_edge(clock_18) then 
+ if rising_edge(clock_18) then
 
 	if ena_vidgen = '1' and pause = '0' then
 		if hcnt = std_logic_vector(to_unsigned(256+8,9)) then
@@ -647,8 +643,8 @@ begin
 	end if;
 
  end if;
-end process; 
-	
+end process;
+
 --- VIDEO MUX ---
 -----------------
 
@@ -661,11 +657,11 @@ begin
 	if rgb_palette_addr(3 downto 0) = "1111" then
 		video_r <= star_color(1 downto 0) & "0";
 		video_g <= star_color(3 downto 2) & "0";
-		video_b <= star_color(5 downto 4);		
+		video_b <= star_color(5 downto 4);
 	else
 		video_r <= rgb_palette_do(2 downto 0);
 		video_g <= rgb_palette_do(5 downto 3);
-		video_b <= rgb_palette_do(7 downto 6);	
+		video_b <= rgb_palette_do(7 downto 6);
 	end if;
   end if;
  end if;
@@ -680,8 +676,8 @@ port map(
 clock_18  => clock_18,
 ena       => ena_snd_machine and not pause,
 hcnt      => hcnt(5 downto 0),
-cpu_addr  => mux_addr(3 downto 0), 
-cpu_do    => mux_cpu_do(3 downto 0), 
+cpu_addr  => mux_addr(3 downto 0),
+cpu_do    => mux_cpu_do(3 downto 0),
 ram_0_we  => snd_ram_0_we,
 ram_1_we  => snd_ram_1_we,
 audio     => snd_audio
@@ -723,7 +719,7 @@ port_we  <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "10100" else 
 snd_ram_0_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01101"  and mux_addr(5 downto 4) = "00" else '0';
 snd_ram_1_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01101"  and mux_addr(5 downto 4) = "01" else '0';
 
-process (reset, clock_18n, io_we) 
+process (reset, clock_18n, io_we)
 	variable cs06XX_nmi_cnt : natural range 0 to 1000;
 begin
  if reset='1' then
@@ -741,10 +737,10 @@ begin
 			flip_h <= '0';
 			cs54xx_irq_n <= '1';
 			cs54xx_irq_cnt <= X"0";
-			
- else 
-  if rising_edge(clock_18n) then 
-		if latch_we ='1' and mux_addr(5 downto 4) = "10" then 
+
+ else
+  if rising_edge(clock_18n) then
+		if latch_we ='1' and mux_addr(5 downto 4) = "10" then
 			if mux_addr(2 downto 0) = "000" then irq1_clr_n  <= mux_cpu_do(0); end if;
 			if mux_addr(2 downto 0) = "001" then irq2_clr_n  <= mux_cpu_do(0); end if;
 			if mux_addr(2 downto 0) = "010" then nmion_n     <= mux_cpu_do(0); end if;
@@ -756,25 +752,25 @@ begin
 			if mux_addr(2 downto 0) = "111" then flip_h <= mux_cpu_do(0); end if;
 		end if;
 
-		if irq1_clr_n = '0' then 
+		if irq1_clr_n = '0' then
 		  cpu1_irq_n <= '1';
 		elsif vcnt = std_logic_vector(to_unsigned(240,9)) then cpu1_irq_n <= '0';
  		end if;
-		if irq2_clr_n = '0' then 
+		if irq2_clr_n = '0' then
 		  cpu2_irq_n <= '1';
 		elsif vcnt = std_logic_vector(to_unsigned(240,9)) then cpu2_irq_n <= '0';
 		end if;
-		
-		if cs54xx_irq_cnt = X"0" then 
+
+		if cs54xx_irq_cnt = X"0" then
 		  cs54xx_irq_n <= '1';
-		else 
+		else
 			if cs54xx_ena = '1' then
 				cs54xx_irq_cnt <= cs54xx_irq_cnt - '1';
 			end if;
 		end if;
-		
+
 		-- write to cs06XX
-		if io_we = '1' then 
+		if io_we = '1' then
 			-- write to data register (0x7000)
 		  if mux_addr(8) = '0' then
 				-- write data to device#4 (cs54XX)
@@ -783,8 +779,8 @@ begin
 						cs54xx_k_port_in <= mux_cpu_do(7 downto 4);
 						cs54xx_r0_port_in <= mux_cpu_do(3 downto 0);
 						cs54xx_irq_n <= '0';
-						cs54xx_irq_cnt <= X"7";						
-				end if;		  
+						cs54xx_irq_cnt <= X"7";
+				end if;
 				-- write data to device#1 (cs51XX)
 				if cs06XX_control(3 downto 0) = "0001" then
 					-- when not in coin mode
@@ -799,22 +795,22 @@ begin
 							cs51XX_credit_mode <= '1';
 							cs51XX_data_cnt <= "00";
 						end if;
-						-- if data = 5 enter switch mode 
+						-- if data = 5 enter switch mode
 						if mux_cpu_do(2 downto 0) = "101" then
 							cs51XX_switch_mode <= '1';
 							cs51XX_credit_mode <= '0';
 							cs51XX_data_cnt <= "00";
 						end if;
-					-- when in coin mode	
+					-- when in coin mode
 					else
-						-- written coin/credit data are ignored atm 
+						-- written coin/credit data are ignored atm
 						-- only count down to exit coin_mode (request 4 write operations)
 						cs51XX_coin_mode_cnt <= cs51XX_coin_mode_cnt - "001";
-					end if;	
+					end if;
 				end if;
 			end if;
-			
-			-- write to control register (0x7100) 
+
+			-- write to control register (0x7100)
 			if mux_addr(8) = '1' then
 				cs06XX_control <= mux_cpu_do;
 			  -- start/stop nmi timer
@@ -825,22 +821,22 @@ begin
 					cs06XX_nmi_cnt := 1;
 				end if;
 			end if;
-		end if;	
-		
+		end if;
+
 		-- generate periodic nmi when timer is on
 		if cs06XX_nmi_cnt >= 1 then
 			if cpu1_ena = '1' then  -- to get 333ns tick
 				-- 600 * 333ns = 200µs
-				if cs06XX_nmi_cnt < 600 then  
+				if cs06XX_nmi_cnt < 600 then
 					cs06XX_nmi_cnt := cs06XX_nmi_cnt + 1;
 					cpu1_nmi_n <= '1';
 				else
 					cs06XX_nmi_cnt := 1;
 					cpu1_nmi_n <= '0';
-				end if;	
+				end if;
 			end if;
 		end if;
-		
+
 		-- manage cs06XX data read
 		change_next <= '0';
 		if mux_cpu_mreq = '1' and mux_cpu_we ='0' and mux_addr(15 downto 11) = "01110" then
@@ -851,67 +847,67 @@ begin
 		-- cycle data_cnt at each read and clear firex_mem in switch mode
 		if change_next = '1' then
 			if cs06XX_control(3 downto 0) = "0001" then
-				if cs51XX_data_cnt = "10" then cs51XX_data_cnt <= "00"; 
+				if cs51XX_data_cnt = "10" then cs51XX_data_cnt <= "00";
 				else cs51XX_data_cnt <= cs51XX_data_cnt + "01"; end if;
-				
-				if cs51XX_data_cnt = "10" then 
+
+				if cs51XX_data_cnt = "10" then
 					fire1_mem <= '0';
 					fire2_mem <= '0';
 				end if;
-				
-			end if;				
+
+			end if;
 		end if;
 		-- manage fire button rising edge detection
 		fire1_r <= fire1;
 		fire2_r <= fire2;
 		if fire1_r ='0' and fire1 ='1' then fire1_mem <= '1'; end if;
 		if fire2_r ='0' and fire2 ='1' then fire2_mem <= '1'; end if;
-		
+
 		-- manage credit count (bcd)
 		--   increase at each coin up to 99
 		coin_r <= coin;
 		start1_r <= start1;
 		start2_r <= start2;
-		if coin = '1' and coin_r = '0' then 
-			if credit_bcd_0 = "1001" then 
+		if coin = '1' and coin_r = '0' then
+			if credit_bcd_0 = "1001" then
 				if credit_bcd_1 /= "1001" then
 					credit_bcd_1 <= credit_bcd_1 + "0001";
 					credit_bcd_0 <= "0000";
 				end if;
 			else
 				credit_bcd_0 <= credit_bcd_0 + "0001";
-			end if; 
+			end if;
 		end if;
-		
+
 	  --   decrease only when in credit mode
 		if cs51XX_credit_mode = '1' then
 			if (start1 = '1' and start1_r = '0') then
-				if credit_bcd_0 = "0000" then 
+				if credit_bcd_0 = "0000" then
 					if credit_bcd_1 /= "0000" then
 						credit_bcd_1 <= credit_bcd_1 - "0001";
 						credit_bcd_0 <= "1001";
 					end if;
 				else
 					credit_bcd_0 <= credit_bcd_0 - "0001";
-				end if; 		
+				end if;
 			end if;
-			
+
 			if (start2 = '1' and start2_r = '0') then
 				if credit_bcd_0 = "0000" or credit_bcd_0 = "0001" then
  					if credit_bcd_1 /= "0000" then
 						credit_bcd_1 <= credit_bcd_1 - "0001";
-						if credit_bcd_0 = "0000" then 
+						if credit_bcd_0 = "0000" then
 							credit_bcd_0 <= "1000";
 						else
 							credit_bcd_0 <= "1001";
 						end if;
 					end if;
 				else
-					credit_bcd_0 <= credit_bcd_0 - "0010";					
+					credit_bcd_0 <= credit_bcd_0 - "0010";
 				end if;
 			end if;
 		end if;
-		
+
   end if;
  end if;
 end process;
@@ -919,7 +915,7 @@ end process;
 with cs51XX_data_cnt select
 cs51XX_switch_mode_do <= 	not (left2 & '0' & right2 & '0' & left1 & '0' & right1 & '0' )       when "00",
 									not (b_test & b_svce & '0' & coin & start2 & start1 & fire2_mem & fire1_mem) when "01",
-									X"00" when others;	
+									X"00" when others;
 
 with cs51XX_data_cnt select
 cs51XX_non_switch_mode_do <= 	credit_bcd_1 & credit_bcd_0 when "00", -- credits (cpu spy this)
@@ -952,43 +948,43 @@ begin
 end process;
 
 with cpu1_addr(15 downto 11) select
-cpu1_di <= 	cpu1_rom_do when "00000",
-						cpu1_rom_do when "00001",
-						cpu1_rom_do when "00010",
-						cpu1_rom_do when "00011",
-						cpu1_rom_do when "00100",
-						cpu1_rom_do when "00101",
-						cpu1_rom_do when "00110",
- 						cpu1_rom_do when "00111",
-						"000000" & dip_switch_do when "01101",
-						cs06XX_do   when "01110",
-						bgram_do    when "10000",
-						wram1_do    when "10001",
-						wram2_do    when "10010",
-						wram3_do    when "10011",
-						X"00"       when others;
+cpu1_di <=  cpu1_rom_do when "00000",
+            cpu1_rom_do when "00001",
+            cpu1_rom_do when "00010",
+            cpu1_rom_do when "00011",
+            cpu1_rom_do when "00100",
+            cpu1_rom_do when "00101",
+            cpu1_rom_do when "00110",
+            cpu1_rom_do when "00111",
+            "000000" & dip_switch_do when "01101",
+            cs06XX_do   when "01110",
+            bgram_do    when "10000",
+            wram1_do    when "10001",
+            wram2_do    when "10010",
+            wram3_do    when "10011",
+            X"00"       when others;
 
 with cpu2_addr(15 downto 11) select
-cpu2_di <= 	cpu2_rom_do when "00000",
-						cpu2_rom_do when "00001",
-						"000000" & dip_switch_do when "01101",
-						cs06XX_do   when "01110",
-						bgram_do    when "10000",
-						wram1_do    when "10001",
-						wram2_do    when "10010",
-						wram3_do    when "10011",
-						X"00"       when others;
+cpu2_di <=  cpu2_rom_do when "00000",
+            cpu2_rom_do when "00001",
+            "000000" & dip_switch_do when "01101",
+            cs06XX_do   when "01110",
+            bgram_do    when "10000",
+            wram1_do    when "10001",
+            wram2_do    when "10010",
+            wram3_do    when "10011",
+            X"00"       when others;
 
 with cpu3_addr(15 downto 11) select
-cpu3_di <= 	cpu3_rom_do when "00000",
-						cpu3_rom_do when "00001",
-						"000000" & dip_switch_do when "01101",
-						cs06XX_do   when "01110",
-						bgram_do    when "10000",
-						wram1_do    when "10001",
-						wram2_do    when "10010",
-						wram3_do    when "10011",
-						X"00"       when others;
+cpu3_di <=  cpu3_rom_do when "00000",
+            cpu3_rom_do when "00001",
+            "000000" & dip_switch_do when "01101",
+            cs06XX_do   when "01110",
+            bgram_do    when "10000",
+            wram1_do    when "10001",
+            wram2_do    when "10010",
+            wram3_do    when "10011",
+            X"00"       when others;
 
 -- video address/sync generator
 gen_video : entity work.gen_video
@@ -1103,7 +1099,7 @@ port map(
  irq_n     => cs54xx_irq_n,
  sc_in_n   => '0',
  si_n      => '0',
- 
+
  rom_addr  => cs54xx_rom_addr,
  rom_data  => cs54xx_rom_do
 );
