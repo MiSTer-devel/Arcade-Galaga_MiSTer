@@ -14,7 +14,7 @@
 
 	<setname>galagamw</setname>
 	<parent>galaga</parent>
-	<mameversion>0220</mameversion>
+	<mameversion>0229</mameversion>
 	<rbf>galaga</rbf>
 	<about></about>
 
@@ -28,34 +28,53 @@
 	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
-	<switches></switches>
+	<switches default="00,00" base="8">
+		<dip bits="1,2"   name="Difficulty"  ids="Easy (Rank A),Medium (Rank B),Hard (Rank C),Medium (Rank B)" values="0,3,2,1"/>
+		<dip bits="3"     name="Demo Sounds" ids="Off,On"/>
+		<dip bits="4"     name="Freeze"      ids="Off,On"/>
+		<dip bits="5"     name="Rack Test"   ids="Off,On"/>
+		<dip bits="7"     name="Cabinet"     ids="Upright,Cocktail"/>
+		<!--
+		<dip bits="8,10"  name="Coinage"     ids="1C_1C,2C_1C,1C_3C,4C_1C,1C_2C,3C_1C,2C_3C,Free Play"/>
+		-->
+		<dip bits="11,13" name="Extend"      ids="20k 60k Every 60k,20k 60k,20k 70k every 70k"/>
+		<dip bits="14,15" name="Lives"       ids="5,3,4,2"/>
+	</switches>
 
 	<rom index="1"></rom>
-	<rom index="0" md5="32d57ddcdf7ab064ac43b47a7d7e92aa" zip="galaga.zip|galagamw.zip|namco54.zip">
-		<part crc="3ef0b053" name="3200a.bin"></part>
-		<part crc="1b280831" name="3300b.bin"></part>
-		<part crc="16233d33" name="3400c.bin"></part>
-		<part crc="0aaf5c23" name="3500d.bin"></part>
-		<part crc="bc556e76" name="3600e.bin"></part>
-		<part crc="b07f0aa4" name="3700g.bin"></part>
-		<part crc="ad447c80" name="2800l.bin"></part>
-		<part crc="dd6f1afc" name="2700k.bin"></part>
-		<part crc="58b2f47c" name="2600j.bin"></part>
-		<part crc="ee7357e0" name="54xx.bin"></part>
-		</rom>
-	<rom index="2"></rom>
+	<rom index="0" md5="none" zip="galaga.zip|galagamw.zip|namco54.zip">
+		<!-- main cpu -->
+		<part crc="3ef0b053" name="3200a.bin"/>
+		<part crc="1b280831" name="3300b.bin"/>
+		<part crc="16233d33" name="3400c.bin"/>
+		<part crc="0aaf5c23" name="3500d.bin"/>
+
+		<!-- cpu 2 -->
+		<part crc="bc556e76" name="3600e.bin"/>
+
+		<!-- cpu 3 -->
+		<part crc="b07f0aa4" name="3700g.bin"/>
+
+		<!-- gfx2 -->
+		<part crc="ad447c80" name="2800l.bin"/>
+		<part crc="dd6f1afc" name="2700k.bin"/>
+
+		<!-- gfx1 -->
+		<part crc="58b2f47c" name="2600j.bin"/>
+
+		<!-- namco mcu -->
+		<part crc="ee7357e0" name="54xx.bin"/>
+	</rom>
+	<rom index="2"/>
 	<rom index="3" md5="none">
 		<part>
-		11 2A 88 00 00 FF 00 02 00 02 00 01 00 FF 00 00
-		00 00 8A 20 2D 00 18 00
-		00 00 83 ED 06 00 24 00
+			11 2A 88 00 00 FF 00 02 00 02 00 01 00 FF 00 00
+			00 00 8A 20 2D 00 18 00
+			00 00 83 ED 06 00 24 00
 		</part>
 	</rom>
-	<rom index="4"></rom>
+	<rom index="4"/>
+	<nvram index="4" size="51"/>
 
-	<nvram index="4" size="51"></nvram>
-
-	<remark></remark>
-
-	<mratimestamp>20210430005030</mratimestamp>
+	<mratimestamp>20210720222200</mratimestamp>
 </misterromdescription>

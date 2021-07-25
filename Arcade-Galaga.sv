@@ -191,20 +191,14 @@ assign VIDEO_ARY = (!ar) ? ((status[2] ) ? 8'd3 : 8'd4) : 12'd0;
 
 `include "build_id.v" 
 localparam CONF_STR = {
-	"A.GALAGA;;",
+	"Galaga;;",
+	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H0OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"H2O2,Orientation,Vert,Horz;",
-	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
+	"H0O2,Orientation,Vert,Horz;",
 	"-;",
-	"O89,Lives,3,5,2,4;",
-	"OAB,Difficulty,Medium(B),Hard(C),Hardest(D),Easy(A);",
-	"OC,Cabinet,Upright,Cocktail;",
-	"H0ODF,ShipBonus,30k80kOnly,20k20k80k,30k12k12k,20k60k60k,20k60kOnly,20k70k70k,30k100k100k,Nothing;",
-	"H1ODF,ShipBonus,30kOnly,30k150k150k,30k120kOnly,30k100k100k,30k150kOnly,30k120k120k,30k100kOnly,Nothing;",
-	"OJ,Rack Test,Off,On;",
-	"OK,Freeze,Off,On;",
-	"OL,Demo Sounds,Off,On;",
 	"O7,Pause when OSD is open,On,Off;",
+	"-;",
+	"DIP;",
 	"-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P,Coin,Pause;",
@@ -213,12 +207,10 @@ localparam CONF_STR = {
 	"V,v",`BUILD_DATE
 };
 
-// num ships, cabinet work
-wire [7:0]dip_switch_a = { ~status[12],1'b1,~status[19],~status[20],~status[21],status[11:10],1'b1};
-wire [7:0]dip_switch_b = { ~status[9],status[8],~status[15],~status[14],~status[13],3'b111};
-
-//dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
-//dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
+reg [7:0] dsw[2];
+always @(posedge clk_sys)
+	if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:1])
+		dsw[ioctl_addr[0]] <= ~ioctl_dout;
 
 ////////////////////   CLOCKS   ///////////////////
 
@@ -239,7 +231,7 @@ pll pll
 ///////////////////////////////////////////////////
 
 wire [31:0] status;
-wire [15:0] status_menumask = {direct_video,status[9:8]!=2'b01,status[9:8]==2'b01 };
+wire [15:0] status_menumask = {15'h0,direct_video};
 wire  [1:0] buttons;
 wire        forced_scandoubler;
 wire        direct_video;
@@ -402,10 +394,10 @@ galaga galaga
 	.start2(m_start2),
 	.left2(m_left_2),
 	.right2(m_right_2),
-	.fire2(m_fire_2),        
-	
-	.dip_switch_a(dip_switch_a),
-	.dip_switch_b(dip_switch_b),
+	.fire2(m_fire_2),
+
+	.dip_switch_a(dsw[0]),
+	.dip_switch_b(dsw[1]),
 
 	.pause(pause),
 

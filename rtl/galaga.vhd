@@ -129,9 +129,9 @@ port(
 	left2          : in std_logic;
 	right2         : in std_logic;
 	fire2          : in std_logic;
-	
-	dip_switch_a    : in std_logic_vector (7 downto 0);
-	dip_switch_b    : in std_logic_vector (7 downto 0);
+
+	dip_switch_a   : in std_logic_vector (7 downto 0);
+	dip_switch_b   : in std_logic_vector (7 downto 0);
 
 	dn_addr        : in  std_logic_vector(15 downto 0);
 	dn_data        : in  std_logic_vector(7 downto 0);
