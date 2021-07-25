@@ -282,10 +282,14 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 wire no_rotate = status[2] | direct_video;
 
+wire m_up_2   = joy[3];
+wire m_down_2 = joy[2];
 wire m_left_2 = joy[1];
 wire m_right_2= joy[0];
 wire m_fire_2 = joy[4];
 
+wire m_up     = joy[3];
+wire m_down   = joy[2];
 wire m_left   = joy[1];
 wire m_right  = joy[0];
 wire m_fire   = joy[4];
@@ -390,11 +394,15 @@ galaga galaga
 	.coin(m_coin),
 
 	.start1(m_start1),
+	.up1(m_up),
+	.down1(m_down),
 	.left1(m_left),
 	.right1(m_right),
 	.fire1(m_fire),
 
 	.start2(m_start2),
+	.up2(m_up),
+	.down2(m_down),
 	.left2(m_left_2),
 	.right2(m_right_2),
 	.fire2(m_fire_2),

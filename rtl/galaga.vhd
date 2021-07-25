@@ -122,10 +122,15 @@ port(
 	b_svce         : in std_logic;
 	coin           : in std_logic;
 	start1         : in std_logic;
+	up1            : in std_logic;
+	down1          : in std_logic;
 	left1          : in std_logic;
 	right1         : in std_logic;
 	fire1          : in std_logic;
+
 	start2         : in std_logic;
+	up2            : in std_logic;
+	down2          : in std_logic;
 	left2          : in std_logic;
 	right2         : in std_logic;
 	fire2          : in std_logic;
@@ -212,6 +217,8 @@ architecture struct of galaga is
  signal mux_cpu_mreq : std_logic;
  signal latch_we   : std_logic;
  signal io_we      : std_logic;
+ signal bgrom_we   : std_logic;
+ signal bg_bank    : std_logic;
 
  signal cs06XX_control : std_logic_vector( 7 downto 0);
  signal cs06XX_do      : std_logic_vector( 7 downto 0);
@@ -253,7 +260,7 @@ architecture struct of galaga is
  signal bgtile_num_r   : std_logic_vector( 7 downto 0);
  signal bgtile_color   : std_logic_vector( 7 downto 0);
  signal bgtile_color_r : std_logic_vector( 7 downto 0);
- signal bggraphx_addr  : std_logic_vector(11 downto 0);
+ signal bggraphx_addr  : std_logic_vector(12 downto 0);
  signal bggraphx_do    : std_logic_vector( 7 downto 0);
  signal bgpalette_addr : std_logic_vector( 7 downto 0);
  signal bgpalette_do   : std_logic_vector( 7 downto 0);
@@ -555,8 +562,8 @@ begin
  end if;
 end process;
 
-bggraphx_addr <= '1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vcnt(2 downto 0) when flip_hs='0' else
-                 '1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
+bggraphx_addr <= bg_bank & '1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vcnt(2 downto 0) when flip_hs='0' else
+                 bg_bank & '1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
 
 bgpalette_addr <= bgtile_color_r(5 downto 0) &
 									bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
@@ -724,7 +731,8 @@ mux_cpu_we <= 	(not cpu1_wr_n and cpu1_ena)or
 mux_cpu_mreq <= 	(not cpu1_mreq_n and cpu1_ena) or
 									(not cpu2_mreq_n and cpu2_ena) or
 									(not cpu3_mreq_n and cpu3_ena);
-									
+
+bgrom_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 14) = "00" else '0';
 latch_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01101" else '0';
 io_we    <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01110" else '0';
 bgram_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "10000" else '0';
@@ -763,8 +771,12 @@ begin
 			if mux_addr(2 downto 0) = "010" then nmion_n     <= mux_cpu_do(0); end if;
 			if mux_addr(2 downto 0) = "011" then reset_cpu_n <= mux_cpu_do(0); end if;
 		end if;
-		
-		if port_we ='1' then 
+
+		if bgrom_we ='1' and mux_addr(2 downto 0) = "000" then
+			bg_bank <= mux_cpu_do(0);
+		end if;
+
+		if port_we ='1' then
 			if mux_addr(2 downto 0) < "110" then cs05XX_ctrl(to_integer(unsigned(mux_addr(2 downto 0)))) <= mux_cpu_do(0); end if;
 			if mux_addr(2 downto 0) = "111" then flip_h <= mux_cpu_do(0); end if;
 		end if;
@@ -930,15 +942,15 @@ begin
 end process;
 
 with cs51XX_data_cnt select
-cs51XX_switch_mode_do <= 	not (left2 & '0' & right2 & '0' & left1 & '0' & right1 & '0' )       when "00",
-									not (b_test & b_svce & '0' & coin & start2 & start1 & fire2_mem & fire1_mem) when "01",
-									X"00" when others;
+cs51XX_switch_mode_do <= not (left2 & up2 & right2 & down2 & left1 & up1 & right1 & down1 ) when "00",
+                         not (b_test & b_svce & '0' & coin & start2 & start1 & fire2_mem & fire1_mem) when "01",
+                         X"00" when others;
 
 with cs51XX_data_cnt select
-cs51XX_non_switch_mode_do <= 	credit_bcd_1 & credit_bcd_0 when "00", -- credits (cpu spy this)
-										not ("110" & fire1_mem & left1 & '0' & right1 & '0' ) when "01",
-										not ("110" & fire2_mem & left2 & '0' & right2 & '0' ) when "10",
-										X"00" when "11"; -- N.U.	
+cs51XX_non_switch_mode_do <= credit_bcd_1 & credit_bcd_0 when "00", -- credits (cpu spy this)
+                             not ("110" & fire1_mem & left1 & up1 & right1 & down1 ) when "01",
+                             not ("110" & fire2_mem & left2 & up2 & right2 & down2 ) when "10",
+                             X"00" when "11"; -- N.U.
 
 cs51XX_do <= cs51XX_switch_mode_do when cs51XX_switch_mode = '1' else cs51XX_non_switch_mode_do;
 
@@ -946,8 +958,8 @@ cs54XX_do <= X"FF"; -- no data from CS54XX
 
 with cs06XX_control(3 downto 0) select
 cs06XX_di <= cs51XX_do when "0001",
-						 cs54XX_do when "1000",
-						 X"00" when others;
+             cs54XX_do when "1000",
+             X"00" when others;
 
 cs06XX_do <= cs06XX_di when mux_addr(8)= '0' else cs06XX_control;
 
@@ -1141,8 +1153,8 @@ rom1_cs <= '1' when dn_addr(15 downto 14) = "00"     else '0';
 rom2_cs <= '1' when dn_addr(15 downto 12) = "0100"   else '0';
 rom3_cs <= '1' when dn_addr(15 downto 12) = "0101"   else '0';
 roms_cs <= '1' when dn_addr(15 downto 13) = "011"    else '0';
-romb_cs <= '1' when dn_addr(15 downto 12) = "1000"   else '0';
-romm_cs <= '1' when dn_addr(15 downto 10) = "100100" else '0';
+romb_cs <= '1' when dn_addr(15 downto 13) = "100"    else '0';
+romm_cs <= '1' when dn_addr(15 downto 10) = "101000" else '0';
 
 -- cpu1 program ROM
 rom_cpu1 : work.dpram generic map (14,8)
@@ -1187,16 +1199,16 @@ port map
 );
 
 -- background graphics ROM
-bg_graphics : work.dpram generic map (12,8)
+bg_graphics : work.dpram generic map (13,8)
 port map
 (
 	clock_a   => clock_18,
 	wren_a    => dn_wr and romb_cs,
-	address_a => dn_addr(11 downto 0),
+	address_a => dn_addr(12 downto 0),
 	data_a    => dn_data,
 
 	clock_b   => clock_18n,
-	address_b => bggraphx_addr(11 downto 0),
+	address_b => bggraphx_addr(12 downto 0),
 	q_b       => bggraphx_do
 );
 
@@ -1222,7 +1234,7 @@ port map(
  address_a => mux_addr(10 downto 0),
  data_a    => mux_cpu_do,
  q_a       => bgram_do,
- 
+
  clock_b   => clock_18,
  wren_b    => hs_write and hs_cs_bgram,
  address_b => hs_address(10 downto 0),
@@ -1238,7 +1250,7 @@ port map(
  address_a => mux_addr(9 downto 0),
  data_a    => mux_cpu_do,
  q_a       => wram1_do,
- 
+
  clock_b   => clock_18,
  wren_b    => hs_write and hs_cs_spram,
  address_b => hs_address(9 downto 0),

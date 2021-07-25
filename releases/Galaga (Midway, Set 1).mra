@@ -61,6 +61,7 @@
 
 		<!-- gfx1 -->
 		<part crc="58b2f47c" name="2600j.bin"/>
+		<part crc="58b2f47c" name="2600j.bin"/>
 
 		<!-- namco mcu -->
 		<part crc="ee7357e0" name="54xx.bin"/>
