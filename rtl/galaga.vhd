@@ -137,6 +137,10 @@ port(
 	dn_data        : in  std_logic_vector(7 downto 0);
 	dn_wr          : in  std_logic;
 
+	flip_screen    : in  std_logic := '0';
+	h_offset       : in  signed(3 downto 0);
+	v_offset       : in  signed(3 downto 0);
+
 	pause            : in  std_logic;
 
 	hs_address       : in  std_logic_vector(15 downto 0);
@@ -281,8 +285,9 @@ architecture struct of galaga is
  signal spflip_3V,spflip_3H : std_logic_vector(2 downto 0);
  signal spflips             : std_logic_vector(12 downto 0);
 
- signal flip_h         : std_logic; 
- 
+ signal flip_h         : std_logic;
+ signal flip_hs        : std_logic;
+
  signal spram1_addr    : std_logic_vector(8 downto 0);
  signal spram1_di      : std_logic_vector(3 downto 0);
  signal spram1_do      : std_logic_vector(3 downto 0);
@@ -402,7 +407,8 @@ video_ce <= ce;
 -- 0x9B80 - 0x9BFF : 64 sprites 2xH, 2xV, flip H, flip V
 
 sprite_addr <= X"03"&'1' & sprite_num & sprite_state(0);
-sprite_line <= wram2_do + vcnt(7 downto 0);
+sprite_line <= wram2_do + vcnt(7 downto 0) when flip_screen = '0'
+               else wram2_do - vcnt(7 downto 0) - 3;
 
 process (clock_18, slot)
 begin
@@ -432,7 +438,15 @@ begin
 
 	if slot = "100" and sprite_state = "001" then
 		sptile_color  <= wram1_do;
-		spram_wr_addr <= wram3_do(0) & wram2_do;
+                if flip_screen = '0' then
+                        spram_wr_addr <= wram3_do(0) & wram2_do; -- pos h
+                else
+			if spdata(2) = '0' then
+				spram_wr_addr <= 348 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 1
+			else
+				spram_wr_addr <= 332 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 2
+			end if;
+                end if;
 		sphcnt        <= "00000";
 		sprite_state  <= "010";
 	end if;
@@ -487,38 +501,39 @@ spram2_di  <= spbits_wr when vcnt(0) = '0' else "1111";
 spram1_we <= spram_we when vcnt(0) = '1' else spram_clr;
 spram2_we <= spram_we when vcnt(0) = '0' else spram_clr;
 
-spflip_H <= spdata(0) xor flip_h; spflip_2H <= spflip_H & spflip_H;
+flip_hs <= flip_h xor flip_screen;
+spflip_H <= spdata(0) xor flip_hs; spflip_2H <= spflip_H & spflip_H;
 spflip_V <= spdata(1); spflip_2V <= spflip_V & spflip_V;
 
 with spdata(3 downto 2) select
-spflips <= 	"0000000"                       & spflip_V & spflip_2H & spflip_V & spflip_2V when "00",
-						"000000"  &            spflip_H & spflip_V & spflip_2H & spflip_V & spflip_2V when "01",
-						"00000"   & spflip_V & '0'      & spflip_V & spflip_2H & spflip_V & spflip_2V when "10",
-						"00000"   & spflip_V & spflip_H & spflip_V & spflip_2H & spflip_V & spflip_2V when others;
+        spflips <= "0000000" & spflip_V & spflip_2H & spflip_V  & spflip_2V when "00",
+                   "000000"  & spflip_H & spflip_V  & spflip_2H & spflip_V  & spflip_2V when "01",
+                   "00000"   & spflip_V & '0'       & spflip_V  & spflip_2H & spflip_V & spflip_2V when "10",
+                   "00000"   & spflip_V & spflip_H  & spflip_V  & spflip_2H & spflip_V & spflip_2V when others;
 
 with spdata(3 downto 2) select
-spgraphx_addr <=  (sptile_num(6 downto 0)                             & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "00",
-									(sptile_num(6 downto 1) & 						sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "01",
-									(sptile_num(6 downto 2) & spvcnt(4) & sptile_num(0) & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "10",
-									(sptile_num(6 downto 2) & spvcnt(4) & sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when others;
+        spgraphx_addr <=  (sptile_num(6 downto 0) &                             spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "00",
+                          (sptile_num(6 downto 1) &		sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "01",
+                          (sptile_num(6 downto 2) & spvcnt(4) & sptile_num(0) & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "10",
+                          (sptile_num(6 downto 2) & spvcnt(4) & sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when others;
 
 sppalette_addr <= sptile_color(5 downto 0) &
-									spgraphx_do(to_integer(unsigned('1' & ((not sphcnt(1 downto 0)) xor spflip_2H )))) &
-									spgraphx_do(to_integer(unsigned('0' & ((not sphcnt(1 downto 0)) xor spflip_2H )))); 
+                  spgraphx_do(to_integer(unsigned('1' & ((not sphcnt(1 downto 0)) xor spflip_2H )))) &
+                  spgraphx_do(to_integer(unsigned('0' & ((not sphcnt(1 downto 0)) xor spflip_2H ))));
 
 spbits_wr <= 	sppalette_do(3 downto 0);
 
 --- BACKGROUND TILES MACHINE ---
 -----------------------_--------
-	
+
 -- 0x8000-0x83FF : tile num
 -- 0x8400-0x87FF : tile color
 
-bgtile_addr <= 	"10000" & hcnt(1) & vcnt(7 downto 3) & hcnt(7 downto 3)                                when (hcnt(8)='1' and flip_h='0') else
-								"10000" & hcnt(1) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(3) & vcnt(7 downto 3) when (hcnt(8)='0' and flip_h='0') else
-								"10000" & hcnt(1) & not( vcnt(7 downto 3) & hcnt(7 downto 3))                          when (hcnt(8)='1' and flip_h='1') else
-								"10000" & hcnt(1) & not( hcnt(4) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(3) & vcnt(7 downto 3));
-								
+bgtile_addr <= "10000" & hcnt(1) & (vcnt(7 downto 3)) & hcnt(7 downto 3)                              when (hcnt(8)='1' and flip_hs='0') else
+               "10000" & hcnt(1) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(3) & vcnt(7 downto 3) when (hcnt(8)='0' and flip_hs='0') else
+               "10000" & hcnt(1) & not(vcnt(7 downto 3) & hcnt(7 downto 3))                           when (hcnt(8)='1' and flip_hs='1') else
+               "10000" & hcnt(1) & not(hcnt(4) & hcnt(4) & hcnt(4) & hcnt(4) & hcnt(3) & vcnt(7 downto 3));
+
 
 -- Attention : slot et hcnt ne sont pas entierement synchronisés
 -- slot  |0 |1 | 2 |3 |4 |5 | ...
@@ -540,12 +555,12 @@ begin
  end if;
 end process;
 
-bggraphx_addr <= 	'1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vcnt(2 downto 0) when flip_h='0' else
-									'1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
+bggraphx_addr <= '1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vcnt(2 downto 0) when flip_hs='0' else
+                 '1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
 
 bgpalette_addr <= bgtile_color_r(5 downto 0) &
-									bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_h & flip_h)))) &
-									bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_h & flip_h)))); 
+									bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
+									bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs))));
 
 bgbits <= bgpalette_do(3 downto 0);
 
@@ -622,7 +637,7 @@ begin
 
 	if ena_vidgen = '1' and pause = '0' then
 		if hcnt = std_logic_vector(to_unsigned(256+8,9)) then
-			stars_hcnt <= "000000000";
+			stars_hcnt <= flip_screen & "00000000";
 			stars_vcnt <= stars_vcnt + "000000001";
 			if vcnt = std_logic_vector(to_unsigned(128+6,9)) then
 				stars_vcnt <= "000000000";
@@ -630,10 +645,10 @@ begin
 					std_logic_vector(to_signed(speeds(to_integer(unsigned(cs05XX_ctrl(2 downto 0)))),8));
 			end if;
 		else
-			stars_hcnt <= stars_hcnt + "000000001";
-		end if;	
-	end if; 
-	
+			stars_hcnt <= stars_hcnt + "000000001" - ("" & flip_screen & "0");
+		end if;
+	end if;
+
 	star_color <= "000000";
 	if cs05XX_ctrl(5) = '1' then
 		if cs05XX_ctrl(4 downto 3) = "00" then star_color <= star_color_set0 or star_color_set2; end if;
@@ -997,7 +1012,9 @@ port map(
   vsync   => video_vs,
   csync   => video_csync,
   hblank  => hblank,
-  vblank  => vblank
+  vblank  => vblank,
+  h_offset => h_offset,
+  v_offset => v_offset
 );
 
 -- microprocessor Z80 - 1

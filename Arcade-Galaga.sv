@@ -192,6 +192,9 @@ assign VIDEO_ARY = (!ar) ? ((status[2] ) ? 8'd3 : 8'd4) : 12'd0;
 `include "build_id.v" 
 localparam CONF_STR = {
 	"Galaga;;",
+	"OOR,CRT H-sync Adjust,0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1;",
+	"OSV,CRT V-sync Adjust,0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1;",
+	"O8,Flip Screen,Off,On;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H0OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"H0O2,Orientation,Vert,Horz;",
@@ -399,6 +402,9 @@ galaga galaga
 	.dip_switch_a(dsw[0]),
 	.dip_switch_b(dsw[1]),
 
+	.flip_screen(status[8]),
+	.h_offset(status[27:24]),
+	.v_offset(status[31:28]),
 	.pause(pause),
 
 	.hs_address(hs_address),
