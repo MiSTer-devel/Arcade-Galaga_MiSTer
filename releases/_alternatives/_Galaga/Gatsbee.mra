@@ -1,20 +1,16 @@
 <misterromdescription>
-	<name>Galaga</name>
+	<name>Gatsbee</name>
 	<region/>
-	<homebrew>no</homebrew>
-	<bootleg>no</bootleg>
-	<version>Midway, Set 1</version>
-	<alternative/>
-	<platform/>
+	<year>1984</year>
+	<bootleg>yes</bootleg>
+	<alternative>Galaga</alternative>
 	<series>Galaxian</series>
-	<year>1981</year>
-	<manufacturer>Namco</manufacturer>
-	<manufacturer>Midway</manufacturer>
+	<manufacturer>hack (Uchida)</manufacturer>
 	<category>Shooter - Gallery</category>
 
-	<setname>galagamw</setname>
+	<setname>gatsbee</setname>
 	<parent>galaga</parent>
-	<mameversion>0229</mameversion>
+	<mameversion>0220</mameversion>
 	<rbf>galaga</rbf>
 	<about/>
 
@@ -23,15 +19,14 @@
 	<flip>yes</flip>
 
 	<players>2 (alternating)</players>
-	<joystick>2-way horizontal</joystick>
+	<joystick>4-way horizontal</joystick>
 	<special_controls/>
 	<num_buttons>1</num_buttons>
 	<button_names/>
 
-	<switches default="08,68" base="8">
+	<switches base="8" default="08,68">
 		<!-- DIP Switch 6K -->
-		<dip bits="0"     name="2 credits"   ids="2P game,1P game"/>
-		<dip bits="1,2"   name="Difficulty"  ids="Easy (Rank A),Medium (Rank B),Hard (Rank C),Hardest (Rank D)" values="0,3,2,1"/>
+		<dip bits="0,1"   name="Difficulty"  ids="Easy (Rank A),Medium (Rank B),Hard (Rank C),Hardest (Rank D)" values="0,3,2,1"/>
 		<dip bits="3"     name="Demo Sounds" ids="Off,On"/>
 		<dip bits="4"     name="Freeze"      ids="Off,On"/>
 		<dip bits="5"     name="Rack Test"   ids="Off,On"/>
@@ -48,26 +43,30 @@
 	</switches>
 
 	<rom index="1"/>
-	<rom index="0" md5="3b0a45f542babfaa58e4298cab488fb6" type="merged" zip="galaga.zip|galagamw.zip|namco51.zip|namco54.zip">
+	<rom index="0" md5="9d301ad0f2ac3803b6473cbec81638f3" type="merged" zip="galaga.zip|namco51.zip|namco54.zip">
 		<!-- main cpu -->
-		<part crc="3ef0b053" name="3200a.bin"/>
-		<part crc="1b280831" name="3300b.bin"/>
-		<part crc="16233d33" name="3400c.bin"/>
-		<part crc="0aaf5c23" name="3500d.bin"/>
+		<part crc="9fb8e28b" name="1.4b"/>
+		<part crc="bf6cb840" name="2.4c"/>
+		<part crc="3604e2dd" name="3.4d"/>
+		<part crc="bf9f613b" name="4.4e"/>
 
 		<!-- cpu 2 -->
-		<part crc="bc556e76" name="3600e.bin"/>
+		<part crc="3102fccd" name="gg1-5.3f"/>
 
 		<!-- cpu 3 -->
-		<part crc="b07f0aa4" name="3700g.bin"/>
+		<part crc="8995088d" name="gg1-7.2c"/>
+
+		<!-- cpu 4 - not used -->
+		<!--
+		<part crc="001b70bc" name="gallag.6"/>
+		-->
 
 		<!-- gfx2 -->
-		<part crc="ad447c80" name="2800l.bin"/>
-		<part crc="dd6f1afc" name="2700k.bin"/>
+		<part crc="22e339d5" name="9.6a"/>
+		<part crc="60dcf940" name="10.7a"/>
 
 		<!-- gfx1 -->
-		<part crc="58b2f47c" name="2600j.bin"/>
-		<part crc="58b2f47c" name="2600j.bin"/>
+		<part crc="b324f650" name="8.5r"/>
 
 		<!-- namco mcus -->
 		<part crc="c2f57ef8" name="51xx.bin"/>
@@ -76,13 +75,13 @@
 	<rom index="2"/>
 	<rom index="3" md5="none">
 		<part>
-			11 2A 88 00 00 FF 00 02 00 02 00 01 00 FF 00 00
-			00 00 8A 20 2D 00 18 00
+			00 32 00 00 00 FF 00 02 00 02 00 01 00 FF 00 00
+			00 00 8A 20 2D 00 0E 00
 			00 00 83 ED 06 00 24 00
 		</part>
 	</rom>
 	<rom index="4"/>
 	<nvram index="4" size="51"/>
 
-	<mratimestamp>20210730104618</mratimestamp>
+	<mratimestamp>20210730104830</mratimestamp>
 </misterromdescription>

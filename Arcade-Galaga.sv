@@ -191,19 +191,19 @@ assign VIDEO_ARY = (!ar) ? ((status[2] ) ? 8'd3 : 8'd4) : 12'd0;
 
 `include "build_id.v" 
 localparam CONF_STR = {
-	"A.GALAGA;;",
+	"Galaga;;",
+	"-,-= Analogue video output =-;",
+	"OOR,H-sync Adjust,0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1;",
+	"OSV,V-sync Adjust,0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1;",
+	"O8,Flip Screen,Off,On;",
+	"O35,Scandoubler FX,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"H0-;",
+	"H0-,-= Digital video output =-;",
 	"H0OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"H2O2,Orientation,Vert,Horz;",
-	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",  
+	"H0O2,Orientation,Vertical,Horizontal;",
 	"-;",
-	"O89,Lives,3,5,2,4;",
-	"OAB,Difficulty,Medium(B),Hard(C),Hardest(D),Easy(A);",
-	"OC,Cabinet,Upright,Cocktail;",
-	"H0ODF,ShipBonus,30k80kOnly,20k20k80k,30k12k12k,20k60k60k,20k60kOnly,20k70k70k,30k100k100k,Nothing;",
-	"H1ODF,ShipBonus,30kOnly,30k150k150k,30k120kOnly,30k100k100k,30k150kOnly,30k120k120k,30k100kOnly,Nothing;",
-	"OJ,Rack Test,Off,On;",
-	"OK,Freeze,Off,On;",
-	"OL,Demo Sounds,Off,On;",
+	"DIP;",
+	"-;",
 	"O7,Pause when OSD is open,On,Off;",
 	"-;",
 	"R0,Reset;",
@@ -213,12 +213,10 @@ localparam CONF_STR = {
 	"V,v",`BUILD_DATE
 };
 
-// num ships, cabinet work
-wire [7:0]dip_switch_a = { ~status[12],1'b1,~status[19],~status[20],~status[21],status[11:10],1'b1};
-wire [7:0]dip_switch_b = { ~status[9],status[8],~status[15],~status[14],~status[13],3'b111};
-
-//dip_switch_a <= "11110111"; --  cab:7 / na:6 / test:5 / freeze:4 / demo sound:3 / na:2 / difficulty:1-0
-//dip_switch_b <= "10010111"; --lives:7-6/ bonus:5-3 / coinage:2-0
+reg [7:0] dsw[4];
+always @(posedge clk_sys)
+	if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:2])
+		dsw[ioctl_addr[1:0]] <= ioctl_dout;
 
 ////////////////////   CLOCKS   ///////////////////
 
@@ -239,7 +237,7 @@ pll pll
 ///////////////////////////////////////////////////
 
 wire [31:0] status;
-wire [15:0] status_menumask = {direct_video,status[9:8]!=2'b01,status[9:8]==2'b01 };
+wire [15:0] status_menumask = {15'h0,direct_video};
 wire  [1:0] buttons;
 wire        forced_scandoubler;
 wire        direct_video;
@@ -256,7 +254,6 @@ wire [15:0] joystick_0, joystick_1;
 wire [15:0] joy = joystick_0 | joystick_1;
 
 wire [21:0] gamma_bus;
-
 
 hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 (
@@ -279,7 +276,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_dout(ioctl_dout),
 	.ioctl_din(ioctl_din),
 	.ioctl_index(ioctl_index),
-	
+
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1)
 );
@@ -287,17 +284,16 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 wire no_rotate = status[2] | direct_video;
 
-wire m_left_2 = joy[1];
-wire m_right_2= joy[0];
-wire m_fire_2 = joy[4];
-
+wire m_up     = joy[3];
+wire m_down   = joy[2];
 wire m_left   = joy[1];
 wire m_right  = joy[0];
 wire m_fire   = joy[4];
 
-wire m_start1 = joy[5];
-wire m_start2 = joy[6];
-wire m_coin   = joy[7];
+wire m_start1 = joystick_0[5] | joystick_1[6];
+wire m_start2 = joystick_1[5] | joystick_0[6];
+wire m_coin1  = joystick_0[7];
+wire m_coin2  = joystick_1[7];
 wire m_pause  = joy[8];
 
 // PAUSE SYSTEM
@@ -334,11 +330,11 @@ reg HSync,VSync,HBlank,VBlank;
 always @(posedge clk_48m) begin
 	reg [2:0] div;
 	div <= div + 1'd1;
-	
+
 	ce_pix <= !div;
-	
+
 	rgb_out = dim_video ? {r >> 1,g >> 1, b >> 1} : {r,g,b};
-	
+
 	HSync <= ~hs;
 	VSync <= ~vs;
 	HBlank <= hbl;
@@ -349,7 +345,7 @@ wire hbl,vbl,hs,vs;
 wire [2:0] r,g;
 wire [1:0] b;
 wire [7:0] rgb_out;
-wire rotate_ccw = 0;
+wire rotate_ccw = flip_screen;
 screen_rotate screen_rotate (.*);
 
 arcade_video #(288,8) arcade_video
@@ -362,13 +358,15 @@ arcade_video #(288,8) arcade_video
 	.fx(status[5:3])
 );
 
-wire [9:0] audio;
-assign AUDIO_L = {audio, 6'b000000};
+wire [15:0] audio;
+assign AUDIO_L = audio;
 assign AUDIO_R = AUDIO_L;
 assign AUDIO_S = 0;
 
+
 wire rom_download = ioctl_download & !ioctl_index;
-wire reset = (RESET | status[0] | buttons[1] | ioctl_download);
+wire reset = (RESET | status[0] | buttons[1] | rom_download);
+wire flip_screen = status[8];
 
 galaga galaga
 (
@@ -384,29 +382,37 @@ galaga galaga
 	.video_b(b),
 	.video_hs(hs),
 	.video_vs(vs),
-	.hblank(hbl),
-	.vblank(vbl),
+	.blank_h(hbl),
+	.blank_v(vbl),
 
 	.audio(audio),
 
-	.b_test(1),
-	.b_svce(1), 
+	.self_test(dsw[2][0]),
+	.service(dsw[2][1]),
 
-	.coin(m_coin),
+	.coin1(m_coin1),
+	.coin2(m_coin2),
 
 	.start1(m_start1),
+	.up1(m_up),
+	.down1(m_down),
 	.left1(m_left),
 	.right1(m_right),
 	.fire1(m_fire),
 
 	.start2(m_start2),
-	.left2(m_left_2),
-	.right2(m_right_2),
-	.fire2(m_fire_2),        
-	
-	.dip_switch_a(dip_switch_a),
-	.dip_switch_b(dip_switch_b),
+	.up2(m_up),
+	.down2(m_down),
+	.left2(m_left),
+	.right2(m_right),
+	.fire2(m_fire),
 
+	.dip_switch_a(~dsw[0]),
+	.dip_switch_b(~dsw[1]),
+
+	.flip_screen(flip_screen),
+	.h_offset(status[27:24]),
+	.v_offset(status[31:28]),
 	.pause(pause),
 
 	.hs_address(hs_address),
