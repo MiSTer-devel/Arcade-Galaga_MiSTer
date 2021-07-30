@@ -8,6 +8,7 @@ set_global_assignment -name VHDL_FILE rtl/sp_palette.vhd
 set_global_assignment -name VHDL_FILE rtl/mb88.vhd
 set_global_assignment -name VHDL_FILE rtl/sound_seq.vhd
 set_global_assignment -name VHDL_FILE rtl/sound_samples.vhd
+set_global_assignment -name VHDL_FILE rtl/sound_lpf.vhd
 set_global_assignment -name VHDL_FILE rtl/rgb.vhd
 set_global_assignment -name VHDL_FILE rtl/galaga_video.vhd
 set_global_assignment -name VHDL_FILE rtl/bg_palette.vhd

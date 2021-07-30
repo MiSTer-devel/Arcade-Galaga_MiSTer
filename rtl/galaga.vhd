@@ -117,7 +117,7 @@ port(
 	blank_h        : out std_logic;
 	blank_v        : out std_logic;
 
-	audio          : out std_logic_vector(9 downto 0);
+	audio          : out std_logic_vector(15 downto 0);
 
 	service        : in std_logic;
 	self_test      : in std_logic;
@@ -260,6 +260,10 @@ architecture struct of galaga is
  signal cs54xx_audio_2    : std_logic_vector( 3 downto 0);
  signal cs54xx_audio_3    : std_logic_vector( 3 downto 0);
 
+ signal cs54xx_audio_1_lpf: std_logic_vector(15 downto 0);
+ signal cs54xx_audio_2_lpf: std_logic_vector(15 downto 0);
+ signal cs54xx_audio_3_lpf: std_logic_vector(15 downto 0);
+
  signal cs05XX_ctrl       : std_logic_vector( 5 downto 0);
 
  signal dip_switch_do : std_logic_vector (1 downto 0);
@@ -371,7 +375,11 @@ blank_v <= vblank;
 dip_switch_do <= dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) &
                  dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
 
-audio <= ("00" & cs54xx_audio_1 &  "0000" ) + ("00" & cs54xx_audio_2 &  "0000" )+ ('0'&snd_audio(9 downto 1));
+-- simplified audio signal mixing
+audio <= ("00" & cs54xx_audio_1_lpf(15 downto 2))
+       + ("00" & cs54xx_audio_2_lpf(15 downto 2))
+       + ("00" & cs54xx_audio_3_lpf(15 downto 2))
+       + ("0" & snd_audio & "00000");
 
 -- make access slots from 18MHz
 -- 6MHz for pixel clock and sound machine
@@ -711,14 +719,14 @@ end process;
 
 sound_machine : entity work.sound_machine
 port map(
-clock_18  => clock_18,
-ena       => ena_snd_machine and not pause,
-hcnt      => hcnt(5 downto 0),
-cpu_addr  => mux_addr(3 downto 0),
-cpu_do    => mux_cpu_do(3 downto 0),
-ram_0_we  => snd_ram_0_we,
-ram_1_we  => snd_ram_1_we,
-audio     => snd_audio
+	clock_18  => clock_18,
+	ena       => ena_snd_machine and not pause,
+	hcnt      => hcnt(5 downto 0),
+	cpu_addr  => mux_addr(3 downto 0),
+	cpu_do    => mux_cpu_do(3 downto 0),
+	ram_0_we  => snd_ram_0_we,
+	ram_1_we  => snd_ram_1_we,
+	audio     => snd_audio
 );
 
 --- CPUS -------------
@@ -1104,12 +1112,12 @@ port map(
  r2_port_in  => X"0",
  r3_port_in  => X"0",
  r0_port_out => open,
- r1_port_out => open, --cs54xx_audio_3,   -- pin 17,18,19,20 (resistor divider )
+ r1_port_out => cs54xx_audio_3,   -- pin 17,18,19,20
  r2_port_out => open,
  r3_port_out => open,
  k_port_in   => cs54xx_k_port_in, -- pin 24,25,26,27
- ol_port_out => cs54xx_audio_1,   -- pin  4, 5, 6, 7 (resistor divider 150K/22K)
- oh_port_out => cs54xx_audio_2,   -- pin  8, 9,10,11 (resistor divider  47K/10K)
+ ol_port_out => cs54xx_audio_1,   -- pin  4, 5, 6, 7
+ oh_port_out => cs54xx_audio_2,   -- pin  8, 9,10,11
  p_port_out  => open,
 
  stby_n    => '0',
@@ -1138,6 +1146,56 @@ port map
 	clock_b   => clock_18n,
 	address_b => cs54xx_rom_addr(9 downto 0),
 	q_b       => cs54xx_rom_do
+);
+
+-- Audio low pass filters. Sample rate of 46 875 Mhz has enough resolution for 0.001 MF capacitance
+
+-- cs54xx audio1 low pass filter
+cs54xx_lpf1 : entity work.lpf
+port map(
+	clock      => clock_18,
+	reset      => reset,
+	div        => 384, -- 18 MHz/384 = 46875 Hz
+	audio_in   => ("00"&cs54xx_audio_1&"0000"),
+	gain_in    => 1,
+	r1         => 150000,
+	r2         => 22000,
+	dt_over_c3 => 2133, -- 1/46875Hz/0.01e-6F
+	dt_over_c4 => 2133, -- 1/46875Hz/0.01e-6F
+	r5         => 470000,
+	audio_out  => cs54xx_audio_1_lpf
+);
+
+-- cs54xx audio2 low pass filter
+cs54xx_lpf2 : entity work.lpf
+port map(
+	clock      => clock_18,
+	reset      => reset,
+	div        => 384,
+	audio_in   => ("00"&cs54xx_audio_2&"0000"),
+	gain_in    => 1,
+	r1         => 47000,
+	r2         => 10000,
+	dt_over_c3 => 2133, -- 1/46875Hz/0.01e-6F
+	dt_over_c4 => 2133, -- 1/46875Hz/0.01e-6F
+	r5         => 150000,
+	audio_out  => cs54xx_audio_2_lpf
+);
+
+-- cs54xx audio3 low pass filter
+cs54xx_lpf3 : entity work.lpf
+port map(
+	clock      => clock_18,
+	reset      => reset,
+	div        => 384,
+	audio_in   => ("00"&cs54xx_audio_3&"0000"),
+	gain_in    => 1,
+	r1         => 100000,
+	r2         => 22000,
+	dt_over_c3 => 21333, -- 1/46875Hz/0.001e-6F
+	dt_over_c4 => 21333, -- 1/46875Hz/0.001e-6F
+	r5         => 220000,
+	audio_out  => cs54xx_audio_3_lpf
 );
 
 rom1_cs <= '1' when dn_addr(15 downto 14) = "00"     else '0';

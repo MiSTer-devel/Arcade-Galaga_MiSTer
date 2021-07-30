@@ -358,8 +358,8 @@ arcade_video #(288,8) arcade_video
 	.fx(status[5:3])
 );
 
-wire [9:0] audio;
-assign AUDIO_L = {audio, 6'b000000};
+wire [15:0] audio;
+assign AUDIO_L = audio;
 assign AUDIO_R = AUDIO_L;
 assign AUDIO_S = 0;
 
