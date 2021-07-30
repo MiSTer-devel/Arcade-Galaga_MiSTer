@@ -43,7 +43,7 @@
 	</switches>
 
 	<rom index="1"/>
-	<rom index="0" md5="none" type="merged" zip="galaga.zip|namco51.zip|namco54.zip">
+	<rom index="0" md5="9d301ad0f2ac3803b6473cbec81638f3" type="merged" zip="galaga.zip|namco51.zip|namco54.zip">
 		<!-- main cpu -->
 		<part crc="9fb8e28b" name="1.4b"/>
 		<part crc="bf6cb840" name="2.4c"/>
