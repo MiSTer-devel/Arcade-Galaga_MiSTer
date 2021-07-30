@@ -111,16 +111,18 @@ port(
 	video_b        : out std_logic_vector(1 downto 0);
 	video_csync    : out std_logic;
 	video_ce       : out std_logic;
-	hblank         : out std_logic;
-	vblank         : out std_logic;
 	video_hs       : out std_logic;
 	video_vs       : out std_logic;
 
+	blank_h        : out std_logic;
+	blank_v        : out std_logic;
+
 	audio          : out std_logic_vector(9 downto 0);
 
-	b_test         : in std_logic;
-	b_svce         : in std_logic;
-	coin           : in std_logic;
+	service        : in std_logic;
+	self_test      : in std_logic;
+
+	coin1          : in std_logic;
 	start1         : in std_logic;
 	up1            : in std_logic;
 	down1          : in std_logic;
@@ -128,6 +130,7 @@ port(
 	right1         : in std_logic;
 	fire1          : in std_logic;
 
+	coin2          : in std_logic;
 	start2         : in std_logic;
 	up2            : in std_logic;
 	down2          : in std_logic;
@@ -162,6 +165,7 @@ architecture struct of galaga is
 
  signal hcnt : std_logic_vector(8 downto 0);
  signal vcnt : std_logic_vector(8 downto 0);
+ signal vblank          : std_logic;
  signal ena_vidgen      : std_logic;
  signal ena_snd_machine : std_logic;
  signal cpu1_ena        : std_logic;
@@ -220,26 +224,30 @@ architecture struct of galaga is
  signal bgrom_we   : std_logic;
  signal bg_bank    : std_logic;
 
- signal cs06XX_control : std_logic_vector( 7 downto 0);
- signal cs06XX_do      : std_logic_vector( 7 downto 0);
- signal cs06XX_di      : std_logic_vector( 7 downto 0);
+ signal cs06XX_control        : std_logic_vector( 7 downto 0);
+ signal cs06XX_do             : std_logic_vector( 7 downto 0);
+ signal cs06XX_di             : std_logic_vector( 7 downto 0);
+ signal cs06XX_nmi_state_next : std_logic;
+ signal cs06XX_nmi_stretch    : std_logic;
+ signal cs06XX_nmi_cnt        : std_logic_vector( 8 downto 0);
 
- signal cs51XX_data_cnt           : std_logic_vector( 1 downto 0) := "00";
- signal cs51XX_coin_mode_cnt      : std_logic_vector( 2 downto 0) := "000";
- signal cs51XX_switch_mode        : std_logic := '0';
- signal cs51XX_credit_mode        : std_logic := '1';
- signal cs51XX_do                 : std_logic_vector( 7 downto 0);
- signal cs51XX_switch_mode_do     : std_logic_vector( 7 downto 0);
- signal cs51XX_non_switch_mode_do : std_logic_vector( 7 downto 0);
- signal change_next               : std_logic;
- signal credit_bcd_0              : std_logic_vector( 3 downto 0);
- signal credit_bcd_1              : std_logic_vector( 3 downto 0);
+ signal cs51xx_rom_addr   : std_logic_vector(10 downto 0);
+ signal cs51xx_rom_do     : std_logic_vector( 7 downto 0);
+ signal cs51xx_irq_n      : std_logic := '1';
+ signal cs51xx_ol_port_out: std_logic_vector( 3 downto 0);
+ signal cs51xx_oh_port_out: std_logic_vector( 3 downto 0);
+ signal cs51xx_k_port_in  : std_logic_vector( 3 downto 0);
+ signal cs51XX_do         : std_logic_vector( 7 downto 0);
+
+ signal cs5Xxx_ena        : std_logic;
+ signal cs5Xxx_rw         : std_logic;
+
+ signal change_next       : std_logic;
 
  signal cs54XX_do         : std_logic_vector( 7 downto 0);
 
  signal cs54xx_ena      : std_logic;
  signal cs54xx_ena_div  : std_logic_vector(3 downto 0) := "0000";
- signal cs5Xxx_rw       : std_logic;
 
  signal cs54xx_rom_addr : std_logic_vector(10 downto 0);
  signal cs54xx_rom_do   : std_logic_vector( 7 downto 0);
@@ -344,10 +352,11 @@ architecture struct of galaga is
  signal rom3_cs   : std_logic;
  signal roms_cs   : std_logic;
  signal romb_cs   : std_logic;
- signal romm_cs   : std_logic;
+ signal rom51_cs   : std_logic;
+ signal rom54_cs   : std_logic;
 
  signal ce        : std_logic;
- 
+
  signal hs_cs_bgram       : std_logic;
  signal hs_cs_spram       : std_logic;
  signal hs_data_out_bgram : std_logic_vector(7 downto 0);
@@ -356,6 +365,8 @@ begin
 
 clock_18n <= not clock_18;
 reset_n   <= not reset;
+
+blank_v <= vblank;
 
 dip_switch_do <= dip_switch_a(to_integer(unsigned(mux_addr(3 downto 0)))) &
                  dip_switch_b(to_integer(unsigned(mux_addr(3 downto 0))));
@@ -374,33 +385,36 @@ audio <= ("00" & cs54xx_audio_1 &  "0000" ) + ("00" & cs54xx_audio_2 &  "0000" )
 
 process (clock_18)
 begin
- if rising_edge(clock_18) then
-  ena_vidgen      <= '0';
-  ena_snd_machine <= '0';
-  cpu1_ena   <= '0';
-  cpu2_ena   <= '0';
-  cpu3_ena   <= '0';
-  cs54xx_ena <= '0';
+	if rising_edge(clock_18) then
+		ena_vidgen      <= '0';
+		ena_snd_machine <= '0';
+		cpu1_ena   <= '0';
+		cpu2_ena   <= '0';
+		cpu3_ena   <= '0';
+		cs5Xxx_ena <= '0';
+		cs54xx_ena <= '0';
 
-  if slot = "101" then
-   slot <= (others => '0');
-	cs54xx_ena_div <= cs54xx_ena_div +'1';
-	else
-		slot <= std_logic_vector(unsigned(slot) + 1);
-  end if;
+		if slot = "101" then
+			slot <= (others => '0');
+			cs54xx_ena_div <= cs54xx_ena_div +'1';
+		else
+			slot <= std_logic_vector(unsigned(slot) + 1);
+		end if;
 
-	if slot = "101" or slot = "010" then ena_vidgen      <= '1';	end if;
-	if slot = "010" or slot = "100" then ena_snd_machine <= '1';	end if;
-	if slot = "101" then cpu1_ena <= '1';	end if;
-	if slot = "000" then cpu2_ena <= '1';	end if;
-	if slot = "001" then cpu3_ena <= '1';	end if;
+		if slot = "101" or slot = "010" then ena_vidgen      <= '1';	end if;
+		if slot = "010" or slot = "100" then ena_snd_machine <= '1';	end if;
+		if slot = "101" then cpu1_ena <= '1';	end if;
+		if slot = "000" then cpu2_ena <= '1';	end if;
+		if slot = "001" then cpu3_ena <= '1';	end if;
 
-	if slot = "000" and cs54xx_ena_div = "1100" then
-		cs54xx_ena_div <= "0000";
-		cs54xx_ena <= '1';
+		if slot = "000" then
+			cs5Xxx_ena <= '1';
+			if cs54xx_ena_div = "1100" then
+				cs54xx_ena_div <= "0000";
+				cs54xx_ena <= '1';
+			end if;
+		end if;
 	end if;
-
- end if;
 end process;
 
 ce <= '1' when slot = "011" or slot = "000" else '0';
@@ -745,7 +759,6 @@ snd_ram_0_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01101"  
 snd_ram_1_we <= '1' when mux_cpu_we = '1' and mux_addr(15 downto 11) = "01101"  and mux_addr(5 downto 4) = "01" else '0';
 
 process (reset, clock_18n, io_we)
-	variable cs06XX_nmi_cnt : natural range 0 to 1000;
 begin
  if reset='1' then
 			irq1_clr_n  <= '0';
@@ -754,12 +767,10 @@ begin
 			reset_cpu_n <= '0';
 			cpu1_irq_n  <= '1';
 			cpu2_irq_n  <= '1';
-			cs51XX_coin_mode_cnt <= "000";
-			cs51XX_data_cnt <= "00";
-			cs51XX_switch_mode <= '0';
-			cs51XX_credit_mode <= '1';
-			cs05XX_ctrl <= "000000";
 			flip_h <= '0';
+			cs51xx_irq_n <= '1';
+			cs51xx_k_port_in <= X"0";
+			cs05XX_ctrl <= "000000";
 			cs54xx_irq_n <= '1';
 			cs54xx_irq_cnt <= X"0";
 
@@ -782,158 +793,95 @@ begin
 		end if;
 
 		if irq1_clr_n = '0' then
-		  cpu1_irq_n <= '1';
+			cpu1_irq_n <= '1';
 		elsif vcnt = std_logic_vector(to_unsigned(240,9)) then cpu1_irq_n <= '0';
  		end if;
 		if irq2_clr_n = '0' then
-		  cpu2_irq_n <= '1';
+			cpu2_irq_n <= '1';
 		elsif vcnt = std_logic_vector(to_unsigned(240,9)) then cpu2_irq_n <= '0';
-		end if;
-
-		if cs54xx_irq_cnt = X"0" then
-		  cs54xx_irq_n <= '1';
-		else
-			if cs54xx_ena = '1' then
-				cs54xx_irq_cnt <= cs54xx_irq_cnt - '1';
-			end if;
 		end if;
 
 		-- write to cs06XX
 		if io_we = '1' then
 			-- write to data register (0x7000)
-		  if mux_addr(8) = '0' then
+			if mux_addr(8) = '0' then
 				-- write data to device#4 (cs54XX)
 				if cs06XX_control(3 downto 0) = "1000" then
 						-- write data for k and r#0 port and launch irq to advice cs50xx
 						cs54xx_k_port_in <= mux_cpu_do(7 downto 4);
 						cs54xx_r0_port_in <= mux_cpu_do(3 downto 0);
 						cs54xx_irq_n <= '0';
-						cs54xx_irq_cnt <= X"7";
+						-- cs54xx_irq_cnt <= X"7";
 				end if;
 				-- write data to device#1 (cs51XX)
 				if cs06XX_control(3 downto 0) = "0001" then
-					-- when not in coin mode
-					if cs51XX_coin_mode_cnt = "000" then
-						-- if data = 1 enter coin mode for next 4 write operations
-						if mux_cpu_do(2 downto 0) = "001" then
-							cs51XX_coin_mode_cnt <= "100";
-						end if;
-						-- if data = 2 enter credit mode
-						if mux_cpu_do(2 downto 0) = "010" then
-							cs51XX_switch_mode <= '0';
-							cs51XX_credit_mode <= '1';
-							cs51XX_data_cnt <= "00";
-						end if;
-						-- if data = 5 enter switch mode
-						if mux_cpu_do(2 downto 0) = "101" then
-							cs51XX_switch_mode <= '1';
-							cs51XX_credit_mode <= '0';
-							cs51XX_data_cnt <= "00";
-						end if;
-					-- when in coin mode
-					else
-						-- written coin/credit data are ignored atm
-						-- only count down to exit coin_mode (request 4 write operations)
-						cs51XX_coin_mode_cnt <= cs51XX_coin_mode_cnt - "001";
-					end if;
+					cs51xx_irq_n <= '0';
+					cs51xx_k_port_in <= mux_cpu_do(3 downto 0);
 				end if;
 			end if;
 
 			-- write to control register (0x7100)
+			-- data(3..0) select custom chip 50xx/51xx/54xx
+			-- data (4)   read/write mode for custom chip (1 = read mode)
 			if mux_addr(8) = '1' then
 				cs06XX_control <= mux_cpu_do;
-			  -- start/stop nmi timer
-				if mux_cpu_do(3 downto 0) = "0000" then
-					cs06XX_nmi_cnt := 0;
+				-- start/stop nmi timer (stop if no chip selected)
+				if mux_cpu_do(7 downto 5) = "000" then
+					cs06XX_nmi_cnt <= (others => '0');
 					cpu1_nmi_n <= '1';
+					cs51xx_irq_n <= '1';
+					cs54xx_irq_n <= '1';
 				else
-					cs06XX_nmi_cnt := 1;
+					cs06XX_nmi_cnt <= (others => '0');
+					cpu1_nmi_n <= '1';
+					cs06XX_nmi_stretch <= mux_cpu_do(4);
+					cs06XX_nmi_state_next <= '1';
 				end if;
 			end if;
 		end if;
 
 		-- generate periodic nmi when timer is on
-		if cs06XX_nmi_cnt >= 1 then
+		if cs06XX_control(7 downto 5) /= "000" then
 			if cpu1_ena = '1' then  -- to get 333ns tick
-				-- 600 * 333ns = 200µs
-				if cs06XX_nmi_cnt < 600 then
-					cs06XX_nmi_cnt := cs06XX_nmi_cnt + 1;
-					cpu1_nmi_n <= '1';
+
+				if cs06XX_nmi_cnt = 0 then
+					cs06XX_nmi_cnt <= cs06XX_control(7 downto 5) & "000000"; --64 * cs06XX_control(7 downto 5);
+
+					if cs06XX_nmi_state_next = '1' then
+						cs5Xxx_rw <= cs06XX_control(4);
+					end if;
+
+					if cs06XX_nmi_state_next = '1' and cs06XX_nmi_stretch = '0' then
+						cpu1_nmi_n <= '0';
+					else
+						cpu1_nmi_n <= '1';
+					end if;
+
+					if cs06XX_nmi_state_next = '0' or cs06XX_nmi_stretch = '1' then
+						cs51xx_irq_n <= not (cs06XX_control(0) and cs06XX_nmi_state_next);
+						-- cs50xx_irq_n <= not (cs06XX_control(2) and cs06XX_nmi_state_next);
+						cs54xx_irq_n <= not (cs06XX_control(3) and cs06XX_nmi_state_next);
+					end if;
+
+					cs06XX_nmi_state_next <= not cs06xx_nmi_state_next;
+					cs06XX_nmi_stretch <= '0';
 				else
-					cs06XX_nmi_cnt := 1;
-					cpu1_nmi_n <= '0';
+					cs06XX_nmi_cnt <= cs06XX_nmi_cnt - 1;
 				end if;
 			end if;
 		end if;
 
-		-- manage cs06XX data read
+		-- manage cs06XX data read (0x7000)
 		change_next <= '0';
 		if mux_cpu_mreq = '1' and mux_cpu_we ='0' and mux_addr(15 downto 11) = "01110" then
 			if mux_addr(8) = '0' then
 				change_next <= '1';
 			end if;
 		end if ;
-		-- cycle data_cnt at each read and clear firex_mem in switch mode
+		-- cycle data_cnt at each read
 		if change_next = '1' then
-			if cs06XX_control(3 downto 0) = "0001" then
-				if cs51XX_data_cnt = "10" then cs51XX_data_cnt <= "00";
-				else cs51XX_data_cnt <= cs51XX_data_cnt + "01"; end if;
-
-				if cs51XX_data_cnt = "10" then
-					fire1_mem <= '0';
-					fire2_mem <= '0';
-				end if;
-
-			end if;
-		end if;
-		-- manage fire button rising edge detection
-		fire1_r <= fire1;
-		fire2_r <= fire2;
-		if fire1_r ='0' and fire1 ='1' then fire1_mem <= '1'; end if;
-		if fire2_r ='0' and fire2 ='1' then fire2_mem <= '1'; end if;
-
-		-- manage credit count (bcd)
-		--   increase at each coin up to 99
-		coin_r <= coin;
-		start1_r <= start1;
-		start2_r <= start2;
-		if coin = '1' and coin_r = '0' then
-			if credit_bcd_0 = "1001" then
-				if credit_bcd_1 /= "1001" then
-					credit_bcd_1 <= credit_bcd_1 + "0001";
-					credit_bcd_0 <= "0000";
-				end if;
-			else
-				credit_bcd_0 <= credit_bcd_0 + "0001";
-			end if;
-		end if;
-
-	  --   decrease only when in credit mode
-		if cs51XX_credit_mode = '1' then
-			if (start1 = '1' and start1_r = '0') then
-				if credit_bcd_0 = "0000" then
-					if credit_bcd_1 /= "0000" then
-						credit_bcd_1 <= credit_bcd_1 - "0001";
-						credit_bcd_0 <= "1001";
-					end if;
-				else
-					credit_bcd_0 <= credit_bcd_0 - "0001";
-				end if;
-			end if;
-
-			if (start2 = '1' and start2_r = '0') then
-				if credit_bcd_0 = "0000" or credit_bcd_0 = "0001" then
- 					if credit_bcd_1 /= "0000" then
-						credit_bcd_1 <= credit_bcd_1 - "0001";
-						if credit_bcd_0 = "0000" then
-							credit_bcd_0 <= "1000";
-						else
-							credit_bcd_0 <= "1001";
-						end if;
-					end if;
-				else
-					credit_bcd_0 <= credit_bcd_0 - "0010";
-				end if;
+			if cs06XX_control(4 downto 0) = "10001" then
+				cs51xx_irq_n <= '0';
 			end if;
 		end if;
 
@@ -941,18 +889,7 @@ begin
  end if;
 end process;
 
-with cs51XX_data_cnt select
-cs51XX_switch_mode_do <= not (left2 & up2 & right2 & down2 & left1 & up1 & right1 & down1 ) when "00",
-                         not (b_test & b_svce & '0' & coin & start2 & start1 & fire2_mem & fire1_mem) when "01",
-                         X"00" when others;
-
-with cs51XX_data_cnt select
-cs51XX_non_switch_mode_do <= credit_bcd_1 & credit_bcd_0 when "00", -- credits (cpu spy this)
-                             not ("110" & fire1_mem & left1 & up1 & right1 & down1 ) when "01",
-                             not ("110" & fire2_mem & left2 & up2 & right2 & down2 ) when "10",
-                             X"00" when "11"; -- N.U.
-
-cs51XX_do <= cs51XX_switch_mode_do when cs51XX_switch_mode = '1' else cs51XX_non_switch_mode_do;
+cs51XX_do <= cs51xx_oh_port_out & cs51xx_ol_port_out;
 
 cs54XX_do <= X"FF"; -- no data from CS54XX
 
@@ -1025,7 +962,7 @@ port map(
   hsync   => video_hs,
   vsync   => video_vs,
   csync   => video_csync,
-  hblank  => hblank,
+  hblank  => blank_h,
   vblank  => vblank,
   h_offset => h_offset,
   v_offset => v_offset
@@ -1105,6 +1042,56 @@ port map(
   DO      => cpu3_do
 );
 
+-- mb88 - cs51xx (42 pins IC, 1024 bytes rom)
+mb88_51xx : entity work.mb88
+port map(
+ reset_n    => reset_cpu_n, --reset_n,
+ clock      => clock_18,
+ ena        => cs5Xxx_ena,
+
+ -- in upright mode P2 controls are shared with P1 (i.e. both are read from r0 port)
+ -- up/down controls for Gatsbee hack. Strangely enough, in coctail mode they are reversed.
+ r0_port_in  => not (left1 & up1 & right1 & down1), -- pin 22,23,24,25
+ r1_port_in  => not (left2 & down2 & right2 & up2), -- pin 26,27,28,29
+ r2_port_in  => not (start2 & start1 & fire2 & fire1), -- pin 30,31,32,33
+ r3_port_in  => not (self_test & service & coin2 & coin1), -- pin 34,35,36,37
+ r0_port_out => open,
+ r1_port_out => open,
+ r2_port_out => open,
+ r3_port_out => open,
+ k_port_in   => cs5Xxx_rw & cs51xx_k_port_in(2 downto 0), -- pin 38,39,40,41
+ ol_port_out => cs51xx_ol_port_out, -- pin 13,14,15,16
+ oh_port_out => cs51xx_oh_port_out, -- pin 17,18,19,20
+ p_port_out  => open, -- pin 9,10,11,12
+
+ stby_n    => '0',
+ tc_n      => not vblank, -- pin 8
+ irq_n     => cs51xx_irq_n, -- pin 4
+ sc_in_n   => '0', -- pin 7
+ si_n      => '0', -- pin 6
+ sc_out_n  => open, -- pin 7
+ so_n      => open, -- pin 5
+ to_n      => open, -- pin 7
+
+ rom_addr  => cs51xx_rom_addr,
+ rom_data  => cs51xx_rom_do
+);
+
+-- cs51xx program ROM
+cs51xx_prog : work.dpram generic map (10,8)
+port map
+(
+	clock_a   => clock_18,
+	wren_a    => dn_wr and rom51_cs,
+	address_a => dn_addr(9 downto 0),
+	data_a    => dn_data,
+
+	clock_b   => clock_18n,
+	address_b => cs51xx_rom_addr(9 downto 0),
+	q_b       => cs51xx_rom_do
+);
+
+
 -- mb88 - cs54xx (28 pins IC, 1024 bytes rom)
 mb88_54xx : entity work.mb88
 port map(
@@ -1130,6 +1117,10 @@ port map(
  irq_n     => cs54xx_irq_n,
  sc_in_n   => '0',
  si_n      => '0',
+ sc_out_n  => open, -- pin 7
+ so_n      => open, -- pin 5
+ to_n      => open, -- pin 7
+
 
  rom_addr  => cs54xx_rom_addr,
  rom_data  => cs54xx_rom_do
@@ -1140,7 +1131,7 @@ cs54xx_prog : work.dpram generic map (10,8)
 port map
 (
 	clock_a   => clock_18,
-	wren_a    => dn_wr and romm_cs,
+	wren_a    => dn_wr and rom54_cs,
 	address_a => dn_addr(9 downto 0),
 	data_a    => dn_data,
 
@@ -1154,7 +1145,8 @@ rom2_cs <= '1' when dn_addr(15 downto 12) = "0100"   else '0';
 rom3_cs <= '1' when dn_addr(15 downto 12) = "0101"   else '0';
 roms_cs <= '1' when dn_addr(15 downto 13) = "011"    else '0';
 romb_cs <= '1' when dn_addr(15 downto 13) = "100"    else '0';
-romm_cs <= '1' when dn_addr(15 downto 10) = "101000" else '0';
+rom51_cs <= '1' when dn_addr(15 downto 10) = "101000" else '0';
+rom54_cs <= '1' when dn_addr(15 downto 10) = "101001" else '0';
 
 -- cpu1 program ROM
 rom_cpu1 : work.dpram generic map (14,8)
