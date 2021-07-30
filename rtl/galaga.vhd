@@ -289,6 +289,7 @@ architecture struct of galaga is
  signal spdata         : std_logic_vector(3 downto 0);
  signal spvcnt         : std_logic_vector(4 downto 0);
  signal sphcnt         : std_logic_vector(4 downto 0);
+ signal sphcnt_s       : std_logic_vector(4 downto 0);
  signal spram_wr_addr  : std_logic_vector(8 downto 0);
  signal spram_rd_addr  : std_logic_vector(8 downto 0);
  signal spram_we       : std_logic;
@@ -471,9 +472,9 @@ begin
                         spram_wr_addr <= wram3_do(0) & wram2_do; -- pos h
                 else
 			if spdata(2) = '0' then
-				spram_wr_addr <= 348 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 1
+				spram_wr_addr <= 349 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 1
 			else
-				spram_wr_addr <= 332 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 2
+				spram_wr_addr <= 333 - (wram3_do(0) & wram2_do); -- pos h inverted for size H x 2
 			end if;
                 end if;
 		sphcnt        <= "00000";
@@ -488,7 +489,7 @@ begin
 	if sprite_state = "011" then
 		sphcnt <= sphcnt + "00001";
 		spram_wr_addr <= spram_wr_addr + "000000001";
-		if 	(sphcnt = "01111" and spdata(2) = '0' ) or   -- size H x 1  -- fixed Dar : 04/11/2017
+		if (sphcnt = "01111" and spdata(2) = '0' ) or   -- size H x 1  -- fixed Dar : 04/11/2017
 				(sphcnt = "11111" and spdata(2) = '1' ) then -- size H x 2  -- fixed Dar : 04/11/2017
 			if sprite_num = "111111" then
 				sprite_state <= "111";
@@ -540,15 +541,18 @@ with spdata(3 downto 2) select
                    "00000"   & spflip_V & '0'       & spflip_V  & spflip_2H & spflip_V & spflip_2V when "10",
                    "00000"   & spflip_V & spflip_H  & spflip_V  & spflip_2H & spflip_V & spflip_2V when others;
 
+-- correct sprite h counter in not flipped screen mode
+sphcnt_s <= sphcnt + not(flip_screen);
+
 with spdata(3 downto 2) select
-        spgraphx_addr <=  (sptile_num(6 downto 0) &                             spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "00",
-                          (sptile_num(6 downto 1) &		sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "01",
-                          (sptile_num(6 downto 2) & spvcnt(4) & sptile_num(0) & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "10",
-                          (sptile_num(6 downto 2) & spvcnt(4) & sphcnt(4)     & spvcnt(3) & sphcnt(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when others;
+        spgraphx_addr <=  (sptile_num(6 downto 0) &                             spvcnt(3) & sphcnt_s(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "00",
+                          (sptile_num(6 downto 1) &		sphcnt_s(4)   & spvcnt(3) & sphcnt_s(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "01",
+                          (sptile_num(6 downto 2) & spvcnt(4) & sptile_num(0) & spvcnt(3) & sphcnt_s(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when "10",
+                          (sptile_num(6 downto 2) & spvcnt(4) & sphcnt_s(4)   & spvcnt(3) & sphcnt_s(3 downto 2) & spvcnt(2 downto 0) ) xor spflips when others;
 
 sppalette_addr <= sptile_color(5 downto 0) &
-                  spgraphx_do(to_integer(unsigned('1' & ((not sphcnt(1 downto 0)) xor spflip_2H )))) &
-                  spgraphx_do(to_integer(unsigned('0' & ((not sphcnt(1 downto 0)) xor spflip_2H ))));
+                  spgraphx_do(to_integer(unsigned('1' & ((not sphcnt_s(1 downto 0)) xor spflip_2H )))) &
+                  spgraphx_do(to_integer(unsigned('0' & ((not sphcnt_s(1 downto 0)) xor spflip_2H ))));
 
 spbits_wr <= 	sppalette_do(3 downto 0);
 
