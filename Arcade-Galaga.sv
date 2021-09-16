@@ -54,6 +54,7 @@ module emu
 
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
+	output        HDMI_FREEZE,
 
 `ifdef MISTER_FB
 	// Use framebuffer in DDRAM (USE_FB=1 in qsf)
@@ -183,6 +184,8 @@ assign LED_DISK  = 0;
 assign LED_POWER = 0;
 assign BUTTONS   = 0;
 assign AUDIO_MIX = 0;
+assign HDMI_FREEZE = 0;
+assign FB_FORCE_BLANK = 0;
 
 wire [1:0] ar = status[23:22];
 
@@ -202,10 +205,12 @@ localparam CONF_STR = {
 	"H0OMN,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"H0O2,Orientation,Vertical,Horizontal;",
 	"-;",
+	"H1OC,Autosave Hiscores,Off,On;",
+	"P1,Pause options;",
+	"P1OA,Pause when OSD is open,On,Off;",
+	"P1OB,Dim video after 10s,On,Off;",
+	"-;",
 	"DIP;",
-	"-;",
-	"O7,Pause when OSD is open,On,Off;",
-	"-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P,Coin,Pause;",
 	"jn,A,Start,Select,R,L;",
@@ -237,13 +242,14 @@ pll pll
 ///////////////////////////////////////////////////
 
 wire [31:0] status;
-wire [15:0] status_menumask = {15'h0,direct_video};
+wire [15:0] status_menumask = {14'h0,~hs_configured,direct_video};
 wire  [1:0] buttons;
 wire        forced_scandoubler;
 wire        direct_video;
 
 wire        ioctl_download;
 wire        ioctl_upload;
+wire        ioctl_upload_req;
 wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
@@ -255,12 +261,10 @@ wire [15:0] joy = joystick_0 | joystick_1;
 
 wire [21:0] gamma_bus;
 
-hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
+hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
-
-	.conf_str(CONF_STR),
 
 	.buttons(buttons),
 	.status(status),
@@ -270,6 +274,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.direct_video(direct_video),
 
 	.ioctl_upload(ioctl_upload),
+	.ioctl_upload_req(ioctl_upload_req),
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
@@ -297,33 +302,17 @@ wire m_coin2  = joystick_1[7];
 wire m_pause  = joy[8];
 
 // PAUSE SYSTEM
-reg				pause;									// Pause signal (active-high)
-reg				pause_toggle = 1'b0;					// User paused (active-high)
-reg [31:0]		pause_timer;							// Time since pause
-reg [31:0]		pause_timer_dim = 31'hABA9500;	// Time until screen dim (10 seconds @ ~18Mhz)
-reg 				dim_video = 1'b0;						// Dim video output (active-high)
-
-// Pause when highscore module requires access, user has pressed pause, or OSD is open and option is set
-assign pause = hs_access | pause_toggle  | (OSD_STATUS && ~status[7]);
-assign dim_video = (pause_timer >= pause_timer_dim) ? 1'b1 : 1'b0;
-
-always @(posedge clk_sys) begin
-	reg old_pause;
-	old_pause <= m_pause;
-	if(~old_pause & m_pause) pause_toggle <= ~pause_toggle;
-	if(pause_toggle)
-	begin
-		if(pause_timer<pause_timer_dim)
-		begin
-			pause_timer <= pause_timer + 1'b1;
-		end
-	end
-	else
-	begin
-		pause_timer <= 1'b0;
-	end
-end
-
+wire				pause_cpu;
+wire 				dim_video;
+wire [7:0]		rgb_out;
+pause #(3,3,2,18) pause (
+	.*,
+	.user_button(m_pause),
+	.rgb_out(),
+	.dim_video(dim_video),
+	.pause_request(hs_pause),
+	.options(~status[11:10])
+);
 
 reg ce_pix;
 reg HSync,VSync,HBlank,VBlank;
@@ -334,7 +323,7 @@ always @(posedge clk_48m) begin
 	ce_pix <= !div;
 
 	rgb_out = dim_video ? {r >> 1,g >> 1, b >> 1} : {r,g,b};
-
+	
 	HSync <= ~hs;
 	VSync <= ~vs;
 	HBlank <= hbl;
@@ -344,7 +333,6 @@ end
 wire hbl,vbl,hs,vs;
 wire [2:0] r,g;
 wire [1:0] b;
-wire [7:0] rgb_out;
 wire rotate_ccw = flip_screen;
 screen_rotate screen_rotate (.*);
 
@@ -413,38 +401,45 @@ galaga galaga
 	.flip_screen(flip_screen),
 	.h_offset(status[27:24]),
 	.v_offset(status[31:28]),
-	.pause(pause),
+	.pause(pause_cpu),
 
 	.hs_address(hs_address),
-	.hs_data_out(ioctl_din),
+	.hs_data_out(hs_data_out),
 	.hs_data_in(hs_data_in),
-	.hs_write(hs_write)
+	.hs_write(hs_write_enable)
 );
+
 
 // HISCORE SYSTEM
 // --------------
+// NOTE: Scores are not written to RAM after a reset, reason as yet unknown
 wire [15:0]hs_address;
-wire [7:0]hs_data_in;
-wire hs_write;
-wire hs_access;
+wire [7:0] hs_data_in;
+wire [7:0] hs_data_out;
+wire hs_write_enable;
+wire hs_pause;
+wire hs_configured;
 
 hiscore #(
 	.HS_ADDRESSWIDTH(16),
-	.CFG_ADDRESSWIDTH(2)
+	.CFG_ADDRESSWIDTH(2),
+	.CFG_LENGTHWIDTH(2)
 ) hi (
+	.*,
 	.clk(clk_sys),
-	.reset(reset),
-	.ioctl_upload(ioctl_upload),
-	.ioctl_download(ioctl_download),
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout),
-	.ioctl_din(ioctl_din),
-	.ioctl_index(ioctl_index),
+	.paused(pause_cpu),
+	.autosave(status[12]),
 	.ram_address(hs_address),
+	.data_from_ram(hs_data_out),
 	.data_to_ram(hs_data_in),
-	.ram_write(hs_write),
-	.ram_access(hs_access)
+	.data_from_hps(ioctl_dout),
+	.data_to_hps(ioctl_din),
+	.ram_write(hs_write_enable),
+	.ram_intent_read(),
+	.ram_intent_write(),
+	.pause_cpu(hs_pause),
+	.configured(hs_configured)
 );
+
 
 endmodule

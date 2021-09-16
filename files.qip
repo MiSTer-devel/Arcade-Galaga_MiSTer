@@ -20,4 +20,5 @@ set_global_assignment -name VHDL_FILE rtl/gen_video.vhd
 set_global_assignment -name VHDL_FILE rtl/gen_ram.vhd
 set_global_assignment -name VHDL_FILE rtl/galaga.vhd
 set_global_assignment -name VERILOG_FILE "rtl/hiscore.v"
+set_global_assignment -name VERILOG_FILE "rtl/pause.v"
 set_global_assignment -name SYSTEMVERILOG_FILE "Arcade-Galaga.sv"
