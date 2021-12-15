@@ -81,7 +81,13 @@
 			00 00 83 ED 00 06 00 24
 		</part>
 	</rom>
-	<rom index="4"/>
+	<rom index="4">
+	<part>
+00 00 00 00 02 24 00 00 00 00 02 24 00 00 00 00 02 24 00 00 00 00 02 24
+00 00 00 00 02 24 17 2A 17 0A 2A 0A 16 2A 16 0C 2A 0C 18 2A 18 00 00 00
+00 02 24
+	</part>
+	</rom>
 	<nvram index="4" size="51"/>
 
 	<mratimestamp>20210730104618</mratimestamp>
