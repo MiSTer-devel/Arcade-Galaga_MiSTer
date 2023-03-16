@@ -89,23 +89,32 @@ begin
 			elsif hcntReg = (hsync_base-28-8+8)  then hsync2 <= '1';
 			end if;
 
+			-- vsync_base <= 250 + to_integer(resize(v_offset, 9));
+			--if     vcntReg = (vsync_base+ 2-1+2) mod 264 then csync <= hsync1;
+			--elsif  vcntReg = (vsync_base+ 3-1+2) mod 264 then csync <= hsync1;
+			--elsif  vcntReg = (vsync_base+ 4-1+2) mod 264 then csync <= hsync1; -- and hsync2;
+			--elsif  vcntReg = (vsync_base+ 5-1+2) mod 264 then csync <= hsync2; -- not(hsync1);
+			--elsif  vcntReg = (vsync_base+ 6-1+2) mod 264 then csync <= hsync2; -- not(hsync1);
+			--elsif  vcntReg = (vsync_base+ 7-1+2) mod 264 then csync <= hsync2; -- not(hsync1) or not(hsync2);
+			--elsif  vcntReg = (vsync_base+ 8-1+2) mod 264 then csync <= hsync1;
+			--elsif  vcntReg = (vsync_base+ 9-1+2) mod 264 then csync <= hsync1;
+			--elsif  vcntReg = (vsync_base+10-1+2) mod 264 then csync <= hsync1;
+			--else                          csync <= hsync0;
+			--end if;
+
+			--if    vcntReg = (vsync_base+10) mod 264 then vsync <= '1';
+			--elsif vcntReg = (vsync_base+17) mod 264 then vsync <= '0';
+			--end if;
+
+			--            264-250 -5+1-2 == 8, which is larger than signed 4bits 
+
 			vsync_base <= 250+to_integer(resize(v_offset, 9));
-			if     vcntReg = (vsync_base+ 2-1+2) mod 264 then csync <= hsync1;
-			elsif  vcntReg = (vsync_base+ 3-1+2) mod 264 then csync <= hsync1;
-			elsif  vcntReg = (vsync_base+ 4-1+2) mod 264 then csync <= hsync1; -- and hsync2;
-			elsif  vcntReg = (vsync_base+ 5-1+2) mod 264 then csync <= hsync2; -- not(hsync1);
-			elsif  vcntReg = (vsync_base+ 6-1+2) mod 264 then csync <= hsync2; -- not(hsync1);
-			elsif  vcntReg = (vsync_base+ 7-1+2) mod 264 then csync <= hsync2; -- not(hsync1) or not(hsync2);
-			elsif  vcntReg = (vsync_base+ 8-1+2) mod 264 then csync <= hsync1;
-			elsif  vcntReg = (vsync_base+ 9-1+2) mod 264 then csync <= hsync1;
-			elsif  vcntReg = (vsync_base+10-1+2) mod 264 then csync <= hsync1;
-			else                          csync <= hsync0;
+			if    vcntReg = (vsync_base+10)     and (v_offset) <  263-250-10 then vsync <= '1';
+			elsif vcntReg = (vsync_base+10-263) and (v_offset) >= 263-250-10 then vsync <= '1';
+			elsif vcntReg = (vsync_base+17)     and (v_offset) <  263-250-17 then vsync <= '0';
+			elsif vcntReg = (vsync_base+17-263) and (v_offset) >= 263-250-17 then vsync <= '0';
 			end if;
-
-			if    vcntReg = (vsync_base+10) mod 264 then vsync <= '1';
-			elsif vcntReg = (vsync_base+17) mod 264 then vsync <= '0';
-			end if;
-
+			
 			if    hcntReg = (127+16+9) then hblank <= '1';
 			elsif hcntReg = (255-17+9+1) then hblank <= '0';
 			end if;
