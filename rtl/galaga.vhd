@@ -592,13 +592,13 @@ bggraphx_addr <= bg_bank & '1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vc
                  bg_bank & '1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
 
 bgpalette_addr <= bgtile_color_r(5 downto 0) &
-                                    bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs & '0')))) &
-                                    bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs & '0'))));
+                                    bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor ('0' & flip_hs & flip_hs)))) &
+                                    bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor ('0' & flip_hs & flip_hs))));
                                     
-                                    -- original code
-									-- vivado complained that operands of logical operator ^ have different lengths ( 3 vs 2), 
-									--bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
-									--bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs))));
+                                  -- original code
+									       -- vivado complained that operands of logical operator ^ have different lengths ( 3 vs 2), 
+									       --bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
+									       --bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs))));
 
 bgbits <= bgpalette_do(3 downto 0);
 
