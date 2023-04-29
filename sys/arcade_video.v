@@ -52,7 +52,8 @@ module arcade_video #(parameter WIDTH=320, DW=8, GAMMA=1)
 	inout  [21:0] gamma_bus
 );
 
-assign CLK_VIDEO = clk_video_i; // was clk_video_i
+assign CLK_VIDEO   = clk_video_i;
+assign CLK_VIDEO_o = clk_video_i;
 
 wire hs_fix,vs_fix;
 sync_fix sync_v(CLK_VIDEO, HSync, hs_fix);
@@ -292,14 +293,14 @@ reg [22:0] ram_addr, next_addr;
 reg [31:0] ram_data;
 reg        ram_wr;
 reg [13:0] hcnt_2 = 0;
-reg old_vs, old_de_2;
+reg old_vs_3, old_de_2;
 always @(posedge CLK_VIDEO) begin
 	ram_wr <= 0;
 	if(CE_PIXEL && FB_EN) begin
-		old_vs <= VGA_VS;
+		old_vs_3 <= VGA_VS;
 		old_de_2 <= VGA_DE;
 
-		if(~old_vs & VGA_VS) begin
+		if(~old_vs_3 & VGA_VS) begin
 			next_addr <=
 				do_flip    ? bufsize-3'd4 :
 				rotate_ccw ? (bufsize - stride) : {vsz-1'd1, 2'b00};
