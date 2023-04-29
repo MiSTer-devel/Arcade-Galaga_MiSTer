@@ -237,18 +237,18 @@ always @(posedge CLK_VIDEO) begin
 end
 
 reg [1:0] i_fb,o_fb;
-reg old_vbl,old_vs;
+reg old_vbl,old_vs_1;
 always @(posedge CLK_VIDEO) begin
 	old_vbl <= FB_VBL;
-	old_vs <= VGA_VS;
+	old_vs_1 <= VGA_VS;
 
 	if(FB_LL) begin
 		if(~old_vbl & FB_VBL) o_fb<={1'b0,~i_fb[0]};
-		if(~old_vs & VGA_VS)  i_fb<={1'b0,~i_fb[0]};
+		if(~old_vs_1 & VGA_VS)  i_fb<={1'b0,~i_fb[0]};
 	end
 	else begin
 		if(~old_vbl & FB_VBL) o_fb<=buf_next(o_fb,i_fb);
-		if(~old_vs & VGA_VS)  i_fb<=buf_next(i_fb,o_fb);
+		if(~old_vs_1 & VGA_VS)  i_fb<=buf_next(i_fb,o_fb);
 	end
 end
 
@@ -260,29 +260,29 @@ reg  [2:0] fb_en = 0;
 reg [11:0] hsz = 320, vsz = 240;
 reg [11:0] bwidth;
 reg [22:0] bufsize;
-reg [11:0] hcnt = 0, vcnt = 0;
-reg old_vs, old_de;
+reg [11:0] hcnt_1 = 0, vcnt = 0;
+reg old_vs_2, old_de_1;
 always @(posedge CLK_VIDEO) begin
 	if(CE_PIXEL) begin
-		old_vs <= VGA_VS;
-		old_de <= VGA_DE;
+		old_vs_2 <= VGA_VS;
+		old_de_1 <= VGA_DE;
 
-		hcnt <= hcnt + 1'd1;
-		if(~old_de & VGA_DE) begin
-			hcnt <= 1;
+		hcnt_1 <= hcnt_1 + 1'd1;
+		if(~old_de_1 & VGA_DE) begin
+			hcnt_1 <= 1;
 			vcnt <= vcnt + 1'd1;
 		end
-		if(old_de & ~VGA_DE) begin
-			hsz <= hcnt;
-			if( do_flip ) bwidth <= hcnt + 2'd3;
+		if(old_de_1 & ~VGA_DE) begin
+			hsz <= hcnt_1;
+			if( do_flip ) bwidth <= hcnt_1 + 2'd3;
 		end
-		if(~old_vs & VGA_VS) begin
+		if(~old_vs_2 & VGA_VS) begin
 			vsz <= vcnt;
 			if( !do_flip ) bwidth <= vcnt + 2'd3;
 			vcnt <= 0;
 			fb_en <= {fb_en[1:0], ~no_rotate | flip};
 		end
-		if(old_vs & ~VGA_VS) bufsize <= (do_flip ? vsz : hsz ) * stride;
+		if(old_vs_2 & ~VGA_VS) bufsize <= (do_flip ? vsz : hsz ) * stride;
 	end
 end
 
@@ -291,19 +291,19 @@ wire [13:0] stride = {bwidth[11:2], 4'd0};
 reg [22:0] ram_addr, next_addr;
 reg [31:0] ram_data;
 reg        ram_wr;
-reg [13:0] hcnt = 0;
-reg old_vs, old_de;
+reg [13:0] hcnt_2 = 0;
+reg old_vs, old_de_2;
 always @(posedge CLK_VIDEO) begin
 	ram_wr <= 0;
 	if(CE_PIXEL && FB_EN) begin
 		old_vs <= VGA_VS;
-		old_de <= VGA_DE;
+		old_de_2 <= VGA_DE;
 
 		if(~old_vs & VGA_VS) begin
 			next_addr <=
 				do_flip    ? bufsize-3'd4 :
 				rotate_ccw ? (bufsize - stride) : {vsz-1'd1, 2'b00};
-			hcnt <= rotate_ccw ? 3'd4 : {vsz-2'd2, 2'b00};
+			hcnt_2 <= rotate_ccw ? 3'd4 : {vsz-2'd2, 2'b00};
 		end
 		if(VGA_DE) begin
 			ram_wr <= 1;
@@ -313,11 +313,41 @@ always @(posedge CLK_VIDEO) begin
 				do_flip    ? next_addr-3'd4 :
 				rotate_ccw ? (next_addr - stride) : (next_addr + stride);
 		end
-		if(old_de & ~VGA_DE & ~do_flip) begin
-			next_addr <= rotate_ccw ? (bufsize - stride + hcnt) : hcnt;
-			hcnt <= rotate_ccw ? (hcnt + 3'd4) : (hcnt - 3'd4);
+		if(old_de_2 & ~VGA_DE & ~do_flip) begin
+			next_addr <= rotate_ccw ? (bufsize - stride + hcnt_2) : hcnt_2;
+			hcnt_2 <= rotate_ccw ? (hcnt_2 + 3'd4) : (hcnt_2 - 3'd4);
 		end
 	end
+end
+
+endmodule
+
+// sync_fix taken from MiSTer's main framework file sys_top.v
+module sync_fix
+(
+	input clk,
+	
+	input sync_in,
+	output sync_out
+);
+
+assign sync_out = sync_in ^ pol;
+
+reg pol;
+integer pos = 0, neg = 0, cnt = 0;
+reg s1,s2;
+always @(posedge clk) begin
+	
+	s1 <= sync_in;
+	s2 <= s1;
+
+	if(~s2 & s1) neg <= cnt;
+	if(s2 & ~s1) pos <= cnt;
+
+	cnt <= cnt + 1;
+	if(s2 != s1) cnt <= 0;
+
+	pol <= pos > neg;
 end
 
 endmodule
