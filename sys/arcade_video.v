@@ -28,7 +28,7 @@
 
 module arcade_video #(parameter WIDTH=320, DW=8, GAMMA=1)
 (
-	input         clk_video,
+	input         clk_video_i,     // was clk_video
 	input         ce_pix,
 
 	input[DW-1:0] RGB_in,
@@ -37,7 +37,7 @@ module arcade_video #(parameter WIDTH=320, DW=8, GAMMA=1)
 	input         HSync,
 	input         VSync,
 
-	output        CLK_VIDEO,
+	output        CLK_VIDEO_o,     // was CLK_VIDEO
 	output        CE_PIXEL,
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
@@ -52,7 +52,7 @@ module arcade_video #(parameter WIDTH=320, DW=8, GAMMA=1)
 	inout  [21:0] gamma_bus
 );
 
-assign CLK_VIDEO = clk_video;
+assign CLK_VIDEO = clk_video_i; // was clk_video_i
 
 wire hs_fix,vs_fix;
 sync_fix sync_v(CLK_VIDEO, HSync, hs_fix);
@@ -61,8 +61,9 @@ sync_fix sync_h(CLK_VIDEO, VSync, vs_fix);
 reg [DW-1:0] RGB_fix;
 
 reg CE,HS,VS,HBL,VBL;
+reg old_ce;
 always @(posedge CLK_VIDEO) begin
-	reg old_ce;
+	
 	old_ce <= ce_pix;
 	CE <= 0;
 	if(~old_ce & ce_pix) begin
@@ -236,8 +237,8 @@ always @(posedge CLK_VIDEO) begin
 end
 
 reg [1:0] i_fb,o_fb;
+reg old_vbl,old_vs;
 always @(posedge CLK_VIDEO) begin
-	reg old_vbl,old_vs;
 	old_vbl <= FB_VBL;
 	old_vs <= VGA_VS;
 
@@ -259,10 +260,9 @@ reg  [2:0] fb_en = 0;
 reg [11:0] hsz = 320, vsz = 240;
 reg [11:0] bwidth;
 reg [22:0] bufsize;
+reg [11:0] hcnt = 0, vcnt = 0;
+reg old_vs, old_de;
 always @(posedge CLK_VIDEO) begin
-	reg [11:0] hcnt = 0, vcnt = 0;
-	reg old_vs, old_de;
-
 	if(CE_PIXEL) begin
 		old_vs <= VGA_VS;
 		old_de <= VGA_DE;
@@ -291,10 +291,9 @@ wire [13:0] stride = {bwidth[11:2], 4'd0};
 reg [22:0] ram_addr, next_addr;
 reg [31:0] ram_data;
 reg        ram_wr;
+reg [13:0] hcnt = 0;
+reg old_vs, old_de;
 always @(posedge CLK_VIDEO) begin
-	reg [13:0] hcnt = 0;
-	reg old_vs, old_de;
-
 	ram_wr <= 0;
 	if(CE_PIXEL && FB_EN) begin
 		old_vs <= VGA_VS;

@@ -592,8 +592,13 @@ bggraphx_addr <= bg_bank & '1' & bgtile_num_r(6 downto 0) & not hcnt(2) &     vc
                  bg_bank & '1' & bgtile_num_r(6 downto 0) &     hcnt(2) & not vcnt(2 downto 0);
 
 bgpalette_addr <= bgtile_color_r(5 downto 0) &
-									bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
-									bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs))));
+                                    bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs & '0')))) &
+                                    bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs & '0'))));
+                                    
+                                    -- original code
+									-- vivado complained that operands of logical operator ^ have different lengths ( 3 vs 2), 
+									--bggraphx_do(to_integer(unsigned('1' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs)))) &
+									--bggraphx_do(to_integer(unsigned('0' & (hcnt(1 downto 0)) xor (flip_hs & flip_hs))));
 
 bgbits <= bgpalette_do(3 downto 0);
 
@@ -1090,7 +1095,7 @@ port map(
 );
 
 -- cs51xx program ROM
-cs51xx_prog : work.dpram generic map (10,8)
+cs51xx_prog : entity work.dualport_2clk_ram generic map (10,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1139,7 +1144,7 @@ port map(
 );
 
 -- cs54xx program ROM
-cs54xx_prog : work.dpram generic map (10,8)
+cs54xx_prog : entity work.dualport_2clk_ram generic map (10,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1211,7 +1216,7 @@ rom51_cs <= '1' when dn_addr(15 downto 10) = "101000" else '0';
 rom54_cs <= '1' when dn_addr(15 downto 10) = "101001" else '0';
 
 -- cpu1 program ROM
-rom_cpu1 : work.dpram generic map (14,8)
+rom_cpu1 : entity work.dualport_2clk_ram generic map (14,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1225,7 +1230,7 @@ port map
 );
 
 -- cpu2 program ROM
-rom_cpu2 : work.dpram generic map (12,8)
+rom_cpu2 : entity work.dualport_2clk_ram generic map (12,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1239,7 +1244,7 @@ port map
 );
 
 -- cpu3 program ROM
-rom_cpu3 : work.dpram generic map (12,8)
+rom_cpu3 : entity work.dualport_2clk_ram generic map (12,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1253,7 +1258,7 @@ port map
 );
 
 -- background graphics ROM
-bg_graphics : work.dpram generic map (13,8)
+bg_graphics : entity work.dualport_2clk_ram generic map (13,8)
 port map
 (
 	clock_a   => clock_18,
@@ -1280,7 +1285,7 @@ hs_cs_spram <= '1' when hs_address(15 downto 11) = "10001" else '0';
 hs_data_out <= hs_data_out_bgram when hs_cs_bgram = '1' else hs_data_out_spram;
 
 -- background char RAM   0x8000-0x87FF
-bgram : entity work.dpram
+bgram : entity work.dualport_2clk_ram
 generic map(11,8)
 port map(
  clock_a   => clock_18n,
@@ -1296,7 +1301,7 @@ port map(
  q_b       => hs_data_out_bgram
 );
 -- working/sprite register RAM1   0x8800-0x8BFF / 0x8C00-0x8FFF
-wram1 : entity work.dpram
+wram1 : entity work.dualport_2clk_ram
 generic map(10,8)
 port map(
  clock_a   => clock_18n,
@@ -1354,8 +1359,10 @@ port map(
  q    => spram2_do
 );
 
+
+
 -- sprite graphics ROM
-sp_graphics : work.dpram generic map (13,8)
+sp_graphics : entity work.dualport_2clk_ram generic map (13,8)
 port map
 (
 	clock_a   => clock_18,

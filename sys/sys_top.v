@@ -189,10 +189,12 @@ mcp23009 mcp23009
 
 
 reg btn_user, btn_osd;
+integer div;
+reg [7:0] deb_user;
+reg [7:0] deb_osd;
+
 always @(posedge FPGA_CLK2_50) begin
-	integer div;
-	reg [7:0] deb_user;
-	reg [7:0] deb_osd;
+	
 
 	div <= div + 1'b1;
 	if(div > 100000) div <= 0;
@@ -244,8 +246,8 @@ always @(posedge clk_sys) begin
 end
 
 reg [31:0] gp_outr;
+reg [31:0] gp_outd;
 always @(posedge clk_sys) begin
-	reg [31:0] gp_outd;
 	gp_outr <= gp_outd;
 	gp_outd <= gp_out;
 end
@@ -325,13 +327,15 @@ reg [12:0] arc2x = 0;
 reg [12:0] arc2y = 0;
 reg [15:0] io_dout_sys;
 
+
+reg  [7:0] cmd;
+reg        has_cmd;
+reg  [7:0] cnt = 0;
+reg        vs_d0,vs_d1,vs_d2;
+reg  [4:0] acx_att;
+reg  [7:0] fb_crc;
+
 always@(posedge clk_sys) begin
-	reg  [7:0] cmd;
-	reg        has_cmd;
-	reg  [7:0] cnt = 0;
-	reg        vs_d0,vs_d1,vs_d2;
-	reg  [4:0] acx_att;
-	reg  [7:0] fb_crc;
 
 	coef_wr <= 0;
 
@@ -539,9 +543,9 @@ cyclonev_hps_interface_interrupts interrupts
 ///////////////////////////  RESET  ///////////////////////////////////
 
 reg reset_req = 0;
+reg [1:0] resetd, resetd2;
+reg       old_reset;
 always @(posedge FPGA_CLK2_50) begin
-	reg [1:0] resetd, resetd2;
-	reg       old_reset;
 
 	//latch the reset
 	old_reset <= reset;
@@ -852,11 +856,14 @@ reg [11:0] arx;
 reg [11:0] ary;
 reg        arxy;
 
+
+reg [11:0] hmini,hmaxi,vmini,vmaxi;
+reg [11:0] wcalc,videow;
+reg [11:0] hcalc,videoh;
+reg  [2:0] state;
+
 always @(posedge clk_vid) begin
-	reg [11:0] hmini,hmaxi,vmini,vmaxi;
-	reg [11:0] wcalc,videow;
-	reg [11:0] hcalc,videoh;
-	reg  [2:0] state;
+	
 
 	hdmi_height <= (VSET && (VSET < HEIGHT)) ? VSET : HEIGHT;
 	hdmi_width  <= (HSET && (HSET < WIDTH))  ? HSET << HDMI_PR : WIDTH << HDMI_PR;
@@ -976,9 +983,10 @@ wire        pal_wr;
 
 reg  [28:0] pal_addr;
 reg         pal_req = 0;
-always @(posedge clk_pal) begin
-	reg old_vs1, old_vs2;
+reg old_vs1, old_vs2;
 
+always @(posedge clk_pal) begin
+	
 	pal_addr <= LFB_BASE[31:3] - 29'd512;
 
 	old_vs1 <= hdmi_vs;
@@ -1038,8 +1046,8 @@ pll_cfg pll_cfg
 );
 
 reg cfg_got = 0;
+reg vsd, vsd2;
 always @(posedge clk_sys) begin
-	reg vsd, vsd2;
 	if(~cfg_ready || ~cfg_set) cfg_got <= cfg_set;
 	else begin
 		vsd  <= HDMI_TX_VS;
@@ -1049,10 +1057,10 @@ always @(posedge clk_sys) begin
 end
 
 reg cfg_ready = 0;
+reg gotd = 0, gotd2 = 0;
+reg custd = 0, custd2 = 0;
+reg old_wait = 0;
 always @(posedge FPGA_CLK1_50) begin
-	reg gotd = 0, gotd2 = 0;
-	reg custd = 0, custd2 = 0;
-	reg old_wait = 0;
 
 	gotd  <= cfg_got;
 	gotd2 <= gotd;
@@ -1167,13 +1175,14 @@ reg        dv_hs, dv_vs, dv_de;
 wire [23:0] dv_data_osd;
 wire dv_hs_osd, dv_vs_osd, dv_cs_osd;
 
+reg [23:0] dv_d1, dv_d2;
+reg        dv_de1, dv_de2, dv_hs1, dv_hs2, dv_vs1, dv_vs2;
+reg [12:0] vsz, vcnt, vcnt_l, vcnt_ll;
+reg        old_hs, old_vs;
+reg        vde;
+reg  [3:0] hss;
 always @(posedge clk_vid) begin
-	reg [23:0] dv_d1, dv_d2;
-	reg        dv_de1, dv_de2, dv_hs1, dv_hs2, dv_vs1, dv_vs2;
-	reg [12:0] vsz, vcnt, vcnt_l, vcnt_ll;
-	reg        old_hs, old_vs;
-	reg        vde;
-	reg  [3:0] hss;
+	
 
 	if(ce_pix) begin
 		hss <= (hss << 1) | dv_hs_osd;
@@ -1258,12 +1267,14 @@ reg hdmi_out_vs;
 reg hdmi_out_de;
 reg [23:0] hdmi_out_d;
 
-always @(posedge hdmi_tx_clk) begin
-	reg [23:0] hdmi_dv_data;
-	reg        hdmi_dv_hs, hdmi_dv_vs, hdmi_dv_de;
+reg [23:0] hdmi_dv_data;
+reg        hdmi_dv_hs, hdmi_dv_vs, hdmi_dv_de;
 
-	reg hs,vs,de;
-	reg [23:0] d;
+reg hs,vs,de;
+reg [23:0] d;
+
+always @(posedge hdmi_tx_clk) begin
+	
 	
 	hdmi_dv_data <= dv_data;
 	hdmi_dv_hs   <= dv_hs;
@@ -1408,12 +1419,12 @@ csync csync_vga(clk_vid, vga_hs_osd, vga_vs_osd, vga_cs_osd);
 `endif
 
 reg video_sync = 0;
+reg [11:0] line_cnt  = 0;
+reg [11:0] sync_line = 0;
+reg  [1:0] hs_cnt = 0;
+reg        old_hs;
 always @(posedge clk_vid) begin
-	reg [11:0] line_cnt  = 0;
-	reg [11:0] sync_line = 0;
-	reg  [1:0] hs_cnt = 0;
-	reg        old_hs;
-
+	
 	old_hs <= hs_fix;
 	if(~old_hs & hs_fix) begin
 
@@ -1758,10 +1769,10 @@ module sync_fix
 assign sync_out = sync_in ^ pol;
 
 reg pol;
+integer pos = 0, neg = 0, cnt = 0;
+reg s1,s2;
 always @(posedge clk) begin
-	integer pos = 0, neg = 0, cnt = 0;
-	reg s1,s2;
-
+	
 	s1 <= sync_in;
 	s2 <= s1;
 
@@ -1793,10 +1804,11 @@ module csync
 assign csync = (csync_vs ^ csync_hs);
 
 reg csync_hs, csync_vs;
-always @(posedge clk) begin
-	reg prev_hs;
-	reg [15:0] h_cnt, line_len, hs_len;
+reg prev_hs;
+reg [15:0] h_cnt, line_len, hs_len;
 
+always @(posedge clk) begin
+	
 	// Count line/Hsync length
 	h_cnt <= h_cnt + 1'd1;
 
